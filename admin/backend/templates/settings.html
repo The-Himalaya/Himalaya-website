@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Site Settings{% endblock %}
+{% block page_title %}Site Settings{% endblock %}
+
+{% block content %}
+<form method="POST" action="/admin/settings" class="max-w-3xl">
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <h3 class="section-title">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      General Settings
+    </h3>
+
+    <div class="space-y-5">
+      {% for setting in settings %}
+      <div>
+        <label class="form-label">{{ setting.description or setting.key }}</label>
+        <input type="text" name="{{ setting.key }}" value="{{ setting.value }}" class="form-input">
+        <p class="text-[10px] text-himalaya-smoke mt-0.5">Key: {{ setting.key }}</p>
+      </div>
+      {% else %}
+      <p class="text-sm text-himalaya-smoke">No settings configured yet.</p>
+      {% endfor %}
+
+      <div class="border-t border-gray-100 pt-5">
+        <h4 class="text-sm font-semibold text-himalaya-black mb-3">Add New Setting</h4>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="form-label">Key</label>
+            <input type="text" name="__new_key" id="new_key" class="form-input" placeholder="setting_key">
+          </div>
+          <div>
+            <label class="form-label">Value</label>
+            <input type="text" name="__new_value" id="new_value" class="form-input" placeholder="Setting value">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary">Save Settings</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

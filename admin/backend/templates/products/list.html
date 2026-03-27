@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Products{% endblock %}
+{% block page_title %}Products{% endblock %}
+
+{% block page_actions %}
+<a href="/admin/products/new" class="btn-primary">
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+  Add Product
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6">
+  <form method="GET" action="/admin/products" class="flex items-center gap-3 flex-wrap">
+    <div class="flex-1 min-w-[200px] max-w-xs">
+      <input type="text" name="search" value="{{ search }}" placeholder="Search products..." class="form-input">
+    </div>
+    <div class="min-w-[180px] max-w-xs">
+      <select name="category" class="form-input">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if current_category == cat.id|string %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn-primary">Filter</button>
+    <a href="/admin/products" class="btn-secondary">Clear</a>
+  </form>
+</div>
+
+<!-- Products Table -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+  <table class="w-full">
+    <thead class="bg-gray-50/80">
+      <tr>
+        <th class="table-header">Product</th>
+        <th class="table-header">Category</th>
+        <th class="table-header">Load Class</th>
+        <th class="table-header text-center">3D</th>
+        <th class="table-header text-center">Featured</th>
+        <th class="table-header text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for product in products %}
+      <tr class="hover:bg-himalaya-white/50 transition-colors">
+        <td class="table-cell">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
+              {% if product.image %}
+              <img src="{{ product.image }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+              {% else %}
+              <div class="w-full h-full flex items-center justify-center text-gray-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+              </div>
+              {% endif %}
+            </div>
+            <div>
+              <div class="font-medium text-sm text-himalaya-black">{{ product.name }}</div>
+              <div class="text-[11px] text-himalaya-smoke">{{ product.slug }}</div>
+            </div>
+          </div>
+        </td>
+        <td class="table-cell">
+          <span class="badge badge-blue">{{ product.category_name }}</span>
+        </td>
+        <td class="table-cell">
+          {% if product.load_class %}
+          <span class="badge badge-yellow">{{ product.load_class }}</span>
+          {% else %}
+          <span class="text-gray-300">&mdash;</span>
+          {% endif %}
+        </td>
+        <td class="table-cell text-center">
+          {% if product.model_3d %}
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-violet-50" title="Has 3D model">
+            <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </span>
+          {% else %}
+          <span class="text-gray-300">&mdash;</span>
+          {% endif %}
+        </td>
+        <td class="table-cell text-center">
+          {% if product.featured %}
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50" title="Featured">
+            <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+          </span>
+          {% endif %}
+        </td>
+        <td class="table-cell text-right">
+          <div class="flex items-center justify-end gap-1">
+            <a href="/admin/products/{{ product.id }}/edit" class="action-btn action-btn-edit" title="Edit">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </a>
+            <form method="POST" action="/admin/products/{{ product.id }}/delete" class="inline">
+              <button type="button" onclick="confirmDelete(this.parentElement)" class="action-btn action-btn-delete" title="Delete">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="px-6 py-12 text-center text-himalaya-smoke">
+          <svg class="w-12 h-12 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          <p class="text-sm">No products found.</p>
+          <a href="/admin/products/new" class="text-himalaya-navy hover:underline text-sm mt-1 inline-block">Add your first product</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

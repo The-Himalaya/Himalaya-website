@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Job Openings{% endblock %}
+{% block page_title %}Job Openings{% endblock %}
+
+{% block page_actions %}
+<a href="/admin/jobs/new" class="btn-primary">
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+  Add Job
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+  <table class="w-full">
+    <thead class="bg-gray-50/80">
+      <tr>
+        <th class="table-header">Title</th>
+        <th class="table-header">Department</th>
+        <th class="table-header">Location</th>
+        <th class="table-header">Experience</th>
+        <th class="table-header">Status</th>
+        <th class="table-header text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for job in jobs %}
+      <tr class="hover:bg-himalaya-white/50 transition-colors">
+        <td class="table-cell font-medium text-himalaya-black">{{ job.title }}</td>
+        <td class="table-cell"><span class="badge badge-blue">{{ job.department }}</span></td>
+        <td class="table-cell text-sm">{{ job.location }}</td>
+        <td class="table-cell text-sm">{{ job.experience }}</td>
+        <td class="table-cell">
+          {% if job.is_active %}<span class="badge badge-green">Active</span>{% else %}<span class="badge badge-gray">Closed</span>{% endif %}
+        </td>
+        <td class="table-cell text-right">
+          <div class="flex items-center justify-end gap-1">
+            <a href="/admin/jobs/{{ job.id }}/edit" class="action-btn action-btn-edit" title="Edit">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </a>
+            <form method="POST" action="/admin/jobs/{{ job.id }}/delete" class="inline">
+              <button type="button" onclick="confirmDelete(this.parentElement)" class="action-btn action-btn-delete" title="Delete">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="px-6 py-12 text-center text-himalaya-smoke">No job openings. <a href="/admin/jobs/new" class="text-himalaya-navy hover:underline">Add one</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

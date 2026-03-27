@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Testimonial' if editing else 'New Testimonial' }}{% endblock %}
+{% block page_title %}{{ 'Edit Testimonial' if editing else 'New Testimonial' }}{% endblock %}
+
+{% block page_actions %}
+<a href="/admin/testimonials" class="btn-secondary">
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+  Back
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{% if editing %}/admin/testimonials/{{ testimonial.id }}/edit{% else %}/admin/testimonials/new{% endif %}" class="max-w-2xl">
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <h3 class="section-title">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+      Testimonial Details
+    </h3>
+    <div class="space-y-5">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Name <span class="text-red-400">*</span></label>
+          <input type="text" name="name" value="{{ testimonial.name if testimonial else '' }}" required class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Company</label>
+          <input type="text" name="company" value="{{ testimonial.company if testimonial else '' }}" class="form-input">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Position</label>
+          <input type="text" name="position" value="{{ testimonial.position if testimonial else '' }}" class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Rating</label>
+          <select name="rating" class="form-input">
+            {% for r in range(5, 0, -1) %}
+            <option value="{{ r }}" {% if testimonial and testimonial.rating == r %}selected{% endif %}>{{ r }} Star{{ 's' if r > 1 else '' }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Testimonial Content <span class="text-red-400">*</span></label>
+        <textarea name="content" rows="4" required class="form-input">{{ testimonial.content if testimonial else '' }}</textarea>
+      </div>
+      {% if editing %}
+      <label class="flex items-center gap-2.5 cursor-pointer">
+        <input type="checkbox" name="is_active" id="is_active" value="on" {% if testimonial.is_active %}checked{% endif %} class="w-4 h-4 rounded border-gray-300 text-himalaya-navy focus:ring-himalaya-navy">
+        <span class="text-sm">Active</span>
+      </label>
+      {% endif %}
+      <button type="submit" class="btn-primary">{{ 'Update' if editing else 'Create' }} Testimonial</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

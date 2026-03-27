@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Contact Messages{% endblock %}
+{% block page_title %}Contact Messages{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+  <table class="w-full">
+    <thead class="bg-gray-50/80">
+      <tr>
+        <th class="table-header">Contact</th>
+        <th class="table-header">Message</th>
+        <th class="table-header">Status</th>
+        <th class="table-header">Date</th>
+        <th class="table-header text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for c in contacts %}
+      <tr class="hover:bg-himalaya-white/50 transition-colors">
+        <td class="table-cell">
+          <div class="font-medium text-himalaya-black">{{ c.name }}</div>
+          <div class="text-xs text-himalaya-smoke">{{ c.email }}</div>
+          {% if c.phone %}<div class="text-xs text-himalaya-smoke">{{ c.phone }}</div>{% endif %}
+        </td>
+        <td class="table-cell">
+          <p class="text-sm max-w-md truncate">{{ c.message }}</p>
+          {% if c.company %}<p class="text-xs text-himalaya-smoke mt-0.5">{{ c.company }}</p>{% endif %}
+        </td>
+        <td class="table-cell">
+          <span class="badge {% if c.status == 'new' %}badge-green{% elif c.status == 'read' %}badge-blue{% else %}badge-gray{% endif %}">{{ c.status }}</span>
+        </td>
+        <td class="table-cell text-xs text-himalaya-smoke whitespace-nowrap">{{ c.created_at.strftime('%b %d, %Y') if c.created_at else '' }}</td>
+        <td class="table-cell text-right">
+          <div class="flex items-center justify-end gap-1">
+            {% if c.status == 'new' %}
+            <form method="POST" action="/admin/contacts/{{ c.id }}/status" class="inline">
+              <input type="hidden" name="status" value="read">
+              <button type="submit" class="badge badge-blue cursor-pointer hover:opacity-80" title="Mark read">Mark Read</button>
+            </form>
+            {% endif %}
+            {% if c.status != 'responded' %}
+            <form method="POST" action="/admin/contacts/{{ c.id }}/status" class="inline">
+              <input type="hidden" name="status" value="responded">
+              <button type="submit" class="badge badge-green cursor-pointer hover:opacity-80" title="Mark responded">Responded</button>
+            </form>
+            {% endif %}
+            <form method="POST" action="/admin/contacts/{{ c.id }}/delete" class="inline">
+              <button type="button" onclick="confirmDelete(this.parentElement)" class="action-btn action-btn-delete" title="Delete">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="px-6 py-12 text-center text-himalaya-smoke">No contact messages yet</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

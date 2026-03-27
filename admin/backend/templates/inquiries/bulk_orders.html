@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Bulk Orders{% endblock %}
+{% block page_title %}Bulk Order Inquiries{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+  <table class="w-full">
+    <thead class="bg-gray-50/80">
+      <tr>
+        <th class="table-header">Contact</th>
+        <th class="table-header">Product</th>
+        <th class="table-header">Quantity</th>
+        <th class="table-header">Delivery</th>
+        <th class="table-header">Status</th>
+        <th class="table-header">Date</th>
+        <th class="table-header text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for o in orders %}
+      <tr class="hover:bg-himalaya-white/50 transition-colors">
+        <td class="table-cell">
+          <div class="font-medium text-himalaya-black">{{ o.name }}</div>
+          <div class="text-xs text-himalaya-smoke">{{ o.email }}</div>
+          {% if o.phone %}<div class="text-xs text-himalaya-smoke">{{ o.phone }}</div>{% endif %}
+          {% if o.company %}<div class="text-xs text-himalaya-smoke">{{ o.company }}</div>{% endif %}
+        </td>
+        <td class="table-cell font-medium text-himalaya-black">{{ o.product_name }}</td>
+        <td class="table-cell">{{ o.quantity }}</td>
+        <td class="table-cell text-xs text-himalaya-smoke">
+          {{ o.city }}{% if o.state %}, {{ o.state }}{% endif %}
+          {% if o.pincode %}<br>{{ o.pincode }}{% endif %}
+        </td>
+        <td class="table-cell">
+          <span class="badge {% if o.status == 'new' %}badge-green{% elif o.status == 'contacted' %}badge-blue{% elif o.status == 'quoted' %}badge-yellow{% else %}badge-gray{% endif %}">{{ o.status }}</span>
+        </td>
+        <td class="table-cell text-xs text-himalaya-smoke whitespace-nowrap">{{ o.created_at.strftime('%b %d, %Y') if o.created_at else '' }}</td>
+        <td class="table-cell text-right">
+          <div class="flex items-center justify-end gap-1 flex-wrap">
+            {% for s in ['contacted', 'quoted', 'closed'] %}
+            {% if o.status != s %}
+            <form method="POST" action="/admin/bulk-orders/{{ o.id }}/status" class="inline">
+              <input type="hidden" name="status" value="{{ s }}">
+              <button type="submit" class="badge {% if s == 'contacted' %}badge-blue{% elif s == 'quoted' %}badge-yellow{% else %}badge-gray{% endif %} cursor-pointer hover:opacity-80 text-[10px]">{{ s|capitalize }}</button>
+            </form>
+            {% endif %}
+            {% endfor %}
+            <form method="POST" action="/admin/bulk-orders/{{ o.id }}/delete" class="inline">
+              <button type="button" onclick="confirmDelete(this.parentElement)" class="action-btn action-btn-delete" title="Delete">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="px-6 py-12 text-center text-himalaya-smoke">No bulk order inquiries yet</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Project' if editing else 'New Project' }}{% endblock %}
+{% block page_title %}{{ 'Edit: ' + project.name if editing else 'New Project' }}{% endblock %}
+
+{% block page_actions %}
+<a href="/admin/projects" class="btn-secondary">
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+  Back to Projects
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{% if editing %}/admin/projects/{{ project.id }}/edit{% else %}/admin/projects/new{% endif %}" class="max-w-3xl">
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <h3 class="section-title">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      Project Details
+    </h3>
+    <div class="space-y-5">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Project Name <span class="text-red-400">*</span></label>
+          <input type="text" name="name" value="{{ project.name if project else '' }}" required class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Client</label>
+          <input type="text" name="client" value="{{ project.client if project else '' }}" class="form-input">
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <label class="form-label">Location</label>
+          <input type="text" name="location" value="{{ project.location if project else '' }}" class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Year</label>
+          <input type="number" name="year" value="{{ project.year if project else 2026 }}" class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Quantity</label>
+          <input type="text" name="quantity" value="{{ project.quantity if project else '' }}" class="form-input" placeholder="e.g., 5000+ units">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Products Used</label>
+        <input type="text" name="products_used" value="{% if project and project.products_used %}{{ project.products_used | join(', ') }}{% endif %}" class="form-input" placeholder="Comma-separated: FRP D400 Covers, RCC Chambers">
+      </div>
+      <div>
+        <label class="form-label">Image URL</label>
+        <input type="text" name="image" value="{{ project.image if project else '' }}" class="form-input" placeholder="https://...">
+      </div>
+      <div>
+        <label class="form-label">Description</label>
+        <textarea name="description" rows="4" class="form-input">{{ project.description if project else '' }}</textarea>
+      </div>
+      <button type="submit" class="btn-primary">{{ 'Update Project' if editing else 'Create Project' }}</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

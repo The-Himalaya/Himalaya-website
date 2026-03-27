@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Category' if editing else 'New Category' }}{% endblock %}
+{% block page_title %}{{ 'Edit: ' + category.name if editing else 'New Category' }}{% endblock %}
+
+{% block page_actions %}
+<a href="/admin/categories" class="btn-secondary">
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+  Back to Categories
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{% if editing %}/admin/categories/{{ category.id }}/edit{% else %}/admin/categories/new{% endif %}" class="max-w-2xl">
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <h3 class="section-title">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      Category Details
+    </h3>
+    <div class="space-y-5">
+      <div>
+        <label class="form-label">Category Name <span class="text-red-400">*</span></label>
+        <input type="text" name="name" value="{{ category.name if category else '' }}" required class="form-input" placeholder="e.g., FRP/GRP Products">
+      </div>
+      <div>
+        <label class="form-label">Description</label>
+        <textarea name="description" rows="3" class="form-input" placeholder="Category description...">{{ category.description if category else '' }}</textarea>
+      </div>
+      <div>
+        <label class="form-label">Image URL</label>
+        <input type="text" name="image" value="{{ category.image if category else '' }}" class="form-input" placeholder="https://...">
+      </div>
+      <div>
+        <label class="form-label">Advantages</label>
+        <textarea name="advantages" rows="5" class="form-input" placeholder="One advantage per line">{% if category and category.advantages %}{{ category.advantages | join('\n') }}{% endif %}</textarea>
+        <p class="text-xs text-himalaya-smoke mt-1.5">One per line</p>
+      </div>
+      <button type="submit" class="btn-primary">{{ 'Update Category' if editing else 'Create Category' }}</button>
+    </div>
+  </div>
+</form>
+{% endblock %}
