@@ -48,7 +48,14 @@ def _run_migrations():
                 pass  # column already exists
 
 _run_migrations()
-seed()
+
+# Attempt to seed database, but don't fail if it errors
+try:
+    seed()
+except Exception as e:
+    import logging
+    logging.warning(f"[Warning] Database seeding failed: {e}")
+    # Continue anyway — the app can still work with an empty database
 
 app = FastAPI(title="The Himalaya", docs_url="/admin/api/docs")
 
