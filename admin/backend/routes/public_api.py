@@ -3,6 +3,7 @@ Public JSON API endpoints — no auth required.
 Serves data from the database for the React frontend.
 """
 
+import json
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -28,7 +29,7 @@ def product_to_dict(p: Product) -> dict:
         "images": p.images if isinstance(p.images, list) else [],
         "datasheet": p.datasheet or "",
         "description": p.description or "",
-        "specs": p.specs or "",
+        "specs": json.loads(p.specs) if p.specs else {},
         "applications": p.applications if isinstance(p.applications, list) else [],
         "installation": p.installation if isinstance(p.installation, list) else [],
         "featured": bool(p.featured),
