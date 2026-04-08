@@ -16,6 +16,15 @@ from models import (
 router = APIRouter()
 
 
+def _parse_specs(value: str) -> dict:
+    if not value or not isinstance(value, str) or not value.strip():
+        return {}
+    try:
+        return json.loads(value)
+    except Exception:
+        return {}
+
+
 def product_to_dict(p: Product) -> dict:
     return {
         "id": str(p.id),
@@ -29,7 +38,7 @@ def product_to_dict(p: Product) -> dict:
         "images": p.images if isinstance(p.images, list) else [],
         "datasheet": p.datasheet or "",
         "description": p.description or "",
-        "specs": json.loads(p.specs) if p.specs else {},
+        "specs": _parse_specs(p.specs),
         "applications": p.applications if isinstance(p.applications, list) else [],
         "installation": p.installation if isinstance(p.installation, list) else [],
         "featured": bool(p.featured),
