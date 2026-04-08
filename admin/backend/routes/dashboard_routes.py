@@ -7,7 +7,7 @@ from database import get_db
 from auth import admin_required
 from models import (
     Product, Category, BlogPost, JobOpening, ProjectShowcase,
-    ContactSubmission, BulkOrderInquiry, Testimonial,
+    ContactSubmission, BulkOrderInquiry, Testimonial, Certificate,
 )
 
 router = APIRouter()
@@ -36,6 +36,7 @@ async def dashboard(
             BulkOrderInquiry.status == "new"
         ).count(),
         "testimonials": db.query(Testimonial).count(),
+        "certificates": db.query(Certificate).filter(Certificate.is_active).count(),
     }
 
     recent_contacts = (

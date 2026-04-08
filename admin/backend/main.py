@@ -1,7 +1,8 @@
 import os
 import sys
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -10,21 +11,59 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import settings
 from database import engine
+from firebase_init import init_firebase
 from middleware import AdminIPRestrictionMiddleware
 from models import Base
 from seed_data import seed
+
+# Initialise Firebase Admin SDK before anything else
+init_firebase()
 
 from routes.auth_routes import router as auth_router
 from routes.dashboard_routes import router as dashboard_router
 from routes.product_routes import router as product_router
 from routes.content_routes import router as content_router
+from routes.certificate_routes import router as certificate_router
 from routes.public_api import router as public_api_router
 
-# Create tables and seed data
+# Create tables and run migrations for new columns
 Base.metadata.create_all(bind=engine)
+
+def _run_migrations():
+    from sqlalchemy import text
+    new_cols = [
+        ("blog_posts",  "images",    "TEXT DEFAULT '[]'"),
+        ("blog_posts",  "videos",    "TEXT DEFAULT '[]'"),
+        ("projects",    "images",    "TEXT DEFAULT '[]'"),
+        ("projects",    "videos",    "TEXT DEFAULT '[]'"),
+        ("products",    "datasheet", "VARCHAR(500) DEFAULT ''"),
+        ("products",    "images",    "TEXT DEFAULT '[]'"),
+    ]
+    with engine.connect() as conn:
+        for table, col, typedef in new_cols:
+            try:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}"))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
+
+_run_migrations()
 seed()
 
 app = FastAPI(title="The Himalaya", docs_url="/admin/api/docs")
+
+# --- CORS (allow Next.js dev server and production domain) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        os.environ.get("FRONTEND_URL", ""),
+    ],
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 # --- IP restriction middleware (must be added before routes) ---
 app.add_middleware(AdminIPRestrictionMiddleware)
@@ -43,6 +82,7 @@ app.include_router(auth_router, prefix="/admin")
 app.include_router(dashboard_router, prefix="/admin")
 app.include_router(product_router, prefix="/admin")
 app.include_router(content_router, prefix="/admin")
+app.include_router(certificate_router, prefix="/admin")
 
 # --- Public JSON API (no auth, no IP restriction) ---
 app.include_router(public_api_router, prefix="/api")
@@ -53,31 +93,9 @@ async def admin_root():
     return RedirectResponse(url="/admin/dashboard")
 
 
-# --- Serve the React frontend (built Vite output) ---
-DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "dist")
-
-if os.path.exists(DIST_DIR):
-    # Mount Vite's static assets (JS, CSS, images with hashed filenames)
-    vite_assets = os.path.join(DIST_DIR, "assets-web")
-    if os.path.exists(vite_assets):
-        app.mount("/assets-web", StaticFiles(directory=vite_assets), name="vite_assets")
-
-    # Catch-all: serve index.html for any non-API, non-admin route (SPA routing)
-    @app.get("/{full_path:path}")
-    async def serve_frontend(request: Request, full_path: str):
-        # Try to serve the exact file from dist/ first (e.g. favicon.ico, robots.txt)
-        file_path = os.path.join(DIST_DIR, full_path)
-        if full_path and os.path.isfile(file_path):
-            return FileResponse(file_path)
-        # Otherwise serve index.html for SPA client-side routing
-        index_path = os.path.join(DIST_DIR, "index.html")
-        if os.path.isfile(index_path):
-            return FileResponse(index_path)
-        return RedirectResponse(url="/admin/login")
-else:
-    @app.get("/")
-    async def root():
-        return RedirectResponse(url="/admin/login")
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/admin/login")
 
 
 if __name__ == "__main__":

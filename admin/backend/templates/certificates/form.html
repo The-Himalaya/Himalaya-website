@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Certificate' if editing else 'New Certificate' }}{% endblock %}
+{% block page_title %}{{ 'Edit: ' + certificate.name if editing else 'New Certificate' }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #014871;
+    background: #f0f7ff;
+  }
+  .drop-zone input[type="file"] { display: none; }
+  #img-preview {
+    display: none;
+    margin-top: 1rem;
+    position: relative;
+    width: 100%;
+    max-height: 220px;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #f1f5f9;
+  }
+  #img-preview img {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    display: block;
+  }
+  #img-preview .remove-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .current-image { border-radius: 0.5rem; overflow: hidden; background: #f1f5f9; }
+  .current-image img { width: 100%; max-height: 180px; object-fit: cover; display: block; }
+</style>
+{% endblock %}
+
+{% block page_actions %}
+<a href="/admin/certificates" class="btn-secondary">
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+  Back to Certificates
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST"
+      action="{% if editing %}/admin/certificates/{{ certificate.id }}/edit{% else %}/admin/certificates/create{% endif %}"
+      enctype="multipart/form-data"
+      class="max-w-2xl">
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <h3 class="section-title">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Certificate Details
+    </h3>
+    <div class="space-y-5">
+      <div>
+        <label class="form-label">Certificate Name <span class="text-red-400">*</span></label>
+        <input type="text" name="name" value="{{ certificate.name if certificate else '' }}" required class="form-input" placeholder="e.g., ISO 9001 Certification">
+      </div>
+
+      <div>
+        <label class="form-label">Issuing Authority</label>
+        <input type="text" name="issuer" value="{{ certificate.issuer if certificate else '' }}" class="form-input" placeholder="e.g., International Organization for Standardization">
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Issue Date <span class="text-red-400">*</span></label>
+          <input type="datetime-local" name="issue_date" value="{{ certificate.issue_date.strftime('%Y-%m-%dT%H:%M') if certificate and certificate.issue_date else '' }}" required class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Expiry Date (Optional)</label>
+          <input type="datetime-local" name="expiry_date" value="{{ certificate.expiry_date.strftime('%Y-%m-%dT%H:%M') if certificate and certificate.expiry_date else '' }}" class="form-input">
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">Certificate Number</label>
+        <input type="text" name="certificate_number" value="{{ certificate.certificate_number if certificate else '' }}" class="form-input" placeholder="e.g., ISO-9001-2024-001">
+      </div>
+
+      <div>
+        <label class="form-label">Description</label>
+        <textarea name="description" rows="3" class="form-input" placeholder="Brief description of the certificate...">{{ certificate.description if certificate else '' }}</textarea>
+      </div>
+
+      <div>
+        <label class="form-label flex items-center gap-2">
+          <input type="checkbox" name="is_active" {% if not certificate or certificate.is_active %}checked{% endif %} class="rounded border-gray-300 text-himalaya-navy focus:ring-himalaya-navy">
+          Active Certificate
+        </label>
+        <p class="text-xs text-himalaya-smoke mt-1">Uncheck if this certificate is no longer valid</p>
+      </div>
+
+      {# ── Certificate Image ── #}
+      <div>
+        <label class="form-label">Certificate Image</label>
+
+        {% if editing and certificate.image %}
+        <div class="current-image mb-3" id="current-img-wrap">
+          <img src="{{ certificate.image }}" alt="{{ certificate.name }}" id="current-img">
+          <div class="flex items-center justify-between px-3 py-2 bg-slate-50 text-xs text-himalaya-smoke">
+            <span>Current image — upload a new one to replace it</span>
+            <button type="button" onclick="clearCurrent()" class="text-red-400 hover:text-red-600 font-medium">Remove</button>
+          </div>
+          <input type="hidden" name="keep_image" value="1" id="keep-image-flag">
+        </div>
+        {% endif %}
+
+        <div class="drop-zone" id="drop-zone"
+             onclick="document.getElementById('image_file').click()"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event)">
+          <svg class="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <p class="text-sm text-himalaya-smoke">Drop image here or <span class="text-himalaya-navy font-semibold">browse</span></p>
+          <p class="text-xs text-himalaya-smoke/60 mt-1">JPG, PNG, WEBP supported</p>
+          <input type="file" id="image_file" name="image_file" accept="image/*" onchange="previewImage(this)">
+        </div>
+
+        <div id="img-preview">
+          <img id="preview-img" src="" alt="Preview">
+          <button type="button" class="remove-btn" onclick="clearPreview()">×</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary">{{ 'Update Certificate' if editing else 'Create Certificate' }}</button>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function previewImage(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('preview-img').src = e.target.result;
+    document.getElementById('img-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function clearPreview() {
+  document.getElementById('image_file').value = '';
+  document.getElementById('img-preview').style.display = 'none';
+  document.getElementById('preview-img').src = '';
+}
+
+function clearCurrent() {
+  const wrap = document.getElementById('current-img-wrap');
+  if (wrap) wrap.style.display = 'none';
+  const flag = document.getElementById('keep-image-flag');
+  if (flag) flag.remove();
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function handleDragLeave(e) {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  const input = document.getElementById('image_file');
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  previewImage(input);
+}
+</script>
+{% endblock %}

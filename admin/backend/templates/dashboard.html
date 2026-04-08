@@ -102,6 +102,19 @@
   </div>
 </div>
 
+<!-- Second row stats -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+  <div class="stat-card">
+    <div class="flex items-center justify-between mb-3">
+      <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <a href="/admin/certificates" class="text-xs text-himalaya-navy hover:underline">View all</a>
+    </div>
+    <div class="text-2xl font-bold text-himalaya-black">{{ stats.certificates }}</div>
+    <div class="text-xs text-himalaya-smoke">Active Certificates</div>
+  </div>
+
 <!-- Recent activity tables -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
   <!-- Recent Contacts -->
