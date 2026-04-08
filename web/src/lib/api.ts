@@ -1,63 +1,52 @@
 import type { Category, Product, BlogPost, JobOpening, Project, Testimonial } from './types';
 
-// Import mock data as fallback for when API is unavailable
-import { categories as mockCategories, products as mockProducts, blogPosts as mockBlogPosts, jobOpenings as mockJobOpenings, projects as mockProjects, testimonials as mockTestimonials } from './mockData';
 export { certifications, clients } from './mockData';
 
-const API_BASE = process.env.INTERNAL_API_URL || 'http://localhost:8000';
-// Client-side fetches use a relative URL so Next.js proxy rewrites handle routing.
-// Never use an absolute host here — it bypasses rewrites and triggers CORS failures.
-const CLIENT_API_BASE = '';
+// On the server, use the absolute backend URL. On the client, use a relative URL
+// so Next.js rewrite proxy forwards to the backend (avoids CORS and missing env vars).
+function getApiBase() {
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_URL || 'http://localhost:8000';
+  }
+  return '';
+}
 
-async function serverFetch<T>(path: string, fallback: T): Promise<T> {
+async function apiFetch<T>(path: string, fallback: T): Promise<T> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(`${getApiBase()}${path}`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) throw new Error(`API ${res.status}`);
     return await res.json();
   } catch {
-    console.warn(`[api] ${path} failed, using fallback data`);
-    return fallback;
-  }
-}
-
-// Client-side fetch (used in 'use client' components)
-export async function clientFetch<T>(path: string, fallback: T): Promise<T> {
-  try {
-    const res = await fetch(`${CLIENT_API_BASE}${path}`);
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    return await res.json();
-  } catch {
-    console.warn(`[api] ${path} failed, using fallback data`);
+    console.warn(`[api] ${path} failed`);
     return fallback;
   }
 }
 
 // Categories
-export const fetchCategories = () => serverFetch<Category[]>('/api/categories', mockCategories);
+export const fetchCategories = () => apiFetch<Category[]>('/api/categories', []);
 export const fetchCategoryBySlug = (slug: string) =>
-  serverFetch<Category | null>(`/api/categories/${slug}`, mockCategories.find((c) => c.slug === slug) || null);
+  apiFetch<Category | null>(`/api/categories/${slug}`, null);
 export const fetchCategoryProducts = (slug: string) =>
-  serverFetch<Product[]>(`/api/categories/${slug}/products`, mockProducts.filter((p) => p.categorySlug === slug));
+  apiFetch<Product[]>(`/api/categories/${slug}/products`, []);
 
 // Products
-export const fetchProducts = () => serverFetch<Product[]>('/api/products', mockProducts);
-export const fetchFeaturedProducts = () =>
-  serverFetch<Product[]>('/api/products/featured', mockProducts.filter((p) => p.featured));
+export const fetchProducts = () => apiFetch<Product[]>('/api/products', []);
+export const fetchFeaturedProducts = () => apiFetch<Product[]>('/api/products/featured', []);
 export const fetchProductBySlug = (slug: string) =>
-  serverFetch<Product | null>(`/api/products/${slug}`, mockProducts.find((p) => p.slug === slug) || null);
+  apiFetch<Product | null>(`/api/products/${slug}`, null);
 
 // Blog
-export const fetchBlogPosts = () => serverFetch<BlogPost[]>('/api/blog-posts', mockBlogPosts);
+export const fetchBlogPosts = () => apiFetch<BlogPost[]>('/api/blog-posts', []);
 export const fetchBlogPostBySlug = (slug: string) =>
-  serverFetch<BlogPost | null>(`/api/blog-posts/${slug}`, mockBlogPosts.find((p) => p.slug === slug) || null);
+  apiFetch<BlogPost | null>(`/api/blog-posts/${slug}`, null);
 
 // Jobs
-export const fetchJobOpenings = () => serverFetch<JobOpening[]>('/api/job-openings', mockJobOpenings);
+export const fetchJobOpenings = () => apiFetch<JobOpening[]>('/api/job-openings', []);
 
 // Projects
-export const fetchProjects = () => serverFetch<Project[]>('/api/projects', mockProjects);
+export const fetchProjects = () => apiFetch<Project[]>('/api/projects', []);
 
 // Testimonials
-export const fetchTestimonials = () => serverFetch<Testimonial[]>('/api/testimonials', mockTestimonials);
+export const fetchTestimonials = () => apiFetch<Testimonial[]>('/api/testimonials', []);

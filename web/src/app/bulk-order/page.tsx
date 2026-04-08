@@ -19,9 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { clientFetch } from '@/lib/api';
+import { fetchCategories } from '@/lib/api';
 import type { Category } from '@/lib/types';
-import { categories as mockCategories } from '@/lib/mockData';
 import { analytics } from '@/lib/analytics';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -49,10 +48,14 @@ export default function BulkOrder() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const totalSteps = 3;
 
   useEffect(() => {
-    clientFetch<Category[]>('/api/categories', mockCategories).then(setCategories);
+    fetchCategories().then((cats) => {
+      setCategories(cats);
+      setLoadingCategories(false);
+    });
   }, []);
 
   const {
@@ -240,18 +243,22 @@ export default function BulkOrder() {
                         <Label htmlFor="productCategory" className="text-gray-700">
                           Product Category *
                         </Label>
-                        <Select onValueChange={(value) => setValue('productCategory', value)}>
-                          <SelectTrigger className="mt-2 bg-white border-gray-200 text-gray-900">
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-gray-200">
-                            {categories.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.slug}>
-                                {cat.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {loadingCategories ? (
+                          <div className="mt-2 h-10 rounded-md border border-gray-200 bg-slate-100 animate-pulse" />
+                        ) : (
+                          <Select onValueChange={(value) => setValue('productCategory', value)}>
+                            <SelectTrigger className="mt-2 bg-white border-gray-200 text-gray-900">
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-gray-200">
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.slug}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                         {errors.productCategory && (
                           <p className="text-[var(--himalaya-red)] text-sm mt-1">
                             {errors.productCategory.message}

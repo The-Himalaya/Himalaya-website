@@ -6,16 +6,20 @@ import { Calendar, User, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { clientFetch } from '@/lib/api';
-import { blogPosts as mockBlogPosts } from '@/lib/mockData';
+import { fetchBlogPosts } from '@/lib/api';
 import type { BlogPost } from '@/lib/types';
+import { BlogPostCardSkeleton, FeaturedBlogPostSkeleton } from '@/components/shared/skeletons';
 
 export default function Blog() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    clientFetch<BlogPost[]>('/api/blog-posts', mockBlogPosts).then(setBlogPosts);
+    fetchBlogPosts().then((posts) => {
+      setBlogPosts(posts);
+      setLoading(false);
+    });
   }, []);
 
   // Derive unique categories from actual posts
@@ -49,60 +53,63 @@ export default function Blog() {
       </section>
 
       {/* Featured Post */}
-      {featuredPost && (
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="max-w-6xl mx-auto"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-[var(--himalaya-card)] border border-[var(--border)] rounded-lg overflow-hidden">
-                <div className="relative h-96 lg:h-auto bg-slate-100">
-                  {(featuredPost.image || (featuredPost.images && featuredPost.images[0])) && (
-                    <img
-                      src={featuredPost.image || featuredPost.images![0]}
-                      alt={featuredPost.title}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-[var(--himalaya-red)] text-white px-3 py-1 rounded text-sm font-medium">
-                      Featured
-                    </span>
-                  </div>
-                </div>
-                <div className="p-8 flex flex-col justify-center">
-                  <div className="text-sm text-[var(--himalaya-red)] mb-2">{featuredPost.category}</div>
-                  <h2 className="text-3xl md:text-4xl font-display uppercase text-[var(--himalaya-black)] mb-4">
-                    {featuredPost.title}
-                  </h2>
-                  <p className="text-[var(--himalaya-smoke)] mb-6 leading-relaxed">
-                    {featuredPost.excerpt}
-                  </p>
-                  <div className="flex items-center gap-4 text-sm text-[var(--himalaya-smoke)] mb-6">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      {featuredPost.author}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      {featuredPost.date ? new Date(featuredPost.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            {loading ? (
+              <FeaturedBlogPostSkeleton />
+            ) : featuredPost ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-[var(--himalaya-card)] border border-[var(--border)] rounded-lg overflow-hidden">
+                  <div className="relative h-96 lg:h-auto bg-slate-100">
+                    {(featuredPost.image || (featuredPost.images && featuredPost.images[0])) && (
+                      <img
+                        src={featuredPost.image || featuredPost.images![0]}
+                        alt={featuredPost.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-[var(--himalaya-red)] text-white px-3 py-1 rounded text-sm font-medium">
+                        Featured
+                      </span>
                     </div>
                   </div>
-                  <Link href={`/blog/${featuredPost.slug}`}>
-                    <Button className="bg-[var(--himalaya-red)] hover:bg-[var(--himalaya-red)]/90 text-white w-fit">
-                      Read More
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </Link>
+                  <div className="p-8 flex flex-col justify-center">
+                    <div className="text-sm text-[var(--himalaya-red)] mb-2">{featuredPost.category}</div>
+                    <h2 className="text-3xl md:text-4xl font-display uppercase text-[var(--himalaya-black)] mb-4">
+                      {featuredPost.title}
+                    </h2>
+                    <p className="text-[var(--himalaya-smoke)] mb-6 leading-relaxed">
+                      {featuredPost.excerpt}
+                    </p>
+                    <div className="flex items-center gap-4 text-sm text-[var(--himalaya-smoke)] mb-6">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        {featuredPost.author}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        {featuredPost.date ? new Date(featuredPost.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                      </div>
+                    </div>
+                    <Link href={`/blog/${featuredPost.slug}`}>
+                      <Button className="bg-[var(--himalaya-red)] hover:bg-[var(--himalaya-red)]/90 text-white w-fit">
+                        Read More
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            ) : null}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* All Posts with Category Filter */}
       <section className="py-24 bg-slate-50">
@@ -125,7 +132,11 @@ export default function Blog() {
             </TabsList>
 
             <TabsContent value={activeCategory}>
-              {filteredPosts.length === 0 ? (
+              {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => <BlogPostCardSkeleton key={i} />)}
+                </div>
+              ) : filteredPosts.length === 0 ? (
                 <p className="text-center text-[var(--himalaya-smoke)] py-16">No posts in this category yet.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

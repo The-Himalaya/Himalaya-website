@@ -9,16 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fetchCategories, fetchProducts } from '@/lib/api';
 import type { Category, Product } from '@/lib/types';
+import { CategoryCardSkeleton, ProductCardSkeleton } from '@/components/shared/skeletons';
 
 export default function ProductsOverview() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCategories().then(setCategories);
-    fetchProducts().then(setProducts);
+    Promise.all([fetchCategories(), fetchProducts()]).then(([cats, prods]) => {
+      setCategories(cats);
+      setProducts(prods);
+      setLoading(false);
+    });
   }, []);
 
   const filteredProducts = products.filter((product) => {
@@ -81,9 +86,11 @@ export default function ProductsOverview() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {categories.map((category) => (
-              <CategoryCard key={category.id} {...category} />
-            ))}
+            {loading
+              ? [...Array(4)].map((_, i) => <CategoryCardSkeleton key={i} />)
+              : categories.map((category) => (
+                  <CategoryCard key={category.id} {...category} />
+                ))}
           </div>
         </div>
       </section>
@@ -121,7 +128,11 @@ export default function ProductsOverview() {
             </TabsList>
 
             <TabsContent value={activeTab} className="mt-0">
-              {filteredProducts.length > 0 ? (
+              {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => <ProductCardSkeleton key={i} />)}
+                </div>
+              ) : filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredProducts.map((product) => (
                     <ProductCard key={product.id} {...product} />

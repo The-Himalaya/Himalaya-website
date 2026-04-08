@@ -28,9 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { clientFetch } from "@/lib/api";
-import { jobOpenings as mockJobOpenings } from "@/lib/mockData";
+import { fetchJobOpenings } from "@/lib/api";
 import type { JobOpening } from "@/lib/types";
+import { JobOpeningSkeleton } from "@/components/shared/skeletons";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -53,11 +53,13 @@ export default function Career() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [jobOpenings, setJobOpenings] = useState<JobOpening[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    clientFetch<JobOpening[]>("/api/job-openings", mockJobOpenings).then(
-      setJobOpenings,
-    );
+    fetchJobOpenings().then((jobs) => {
+      setJobOpenings(jobs);
+      setLoading(false);
+    });
   }, []);
 
   const {
@@ -220,7 +222,9 @@ export default function Career() {
           </motion.div>
 
           <div className="max-w-4xl mx-auto space-y-4">
-            {jobOpenings.map((job, index) => (
+            {loading ? (
+              [...Array(3)].map((_, i) => <JobOpeningSkeleton key={i} />)
+            ) : jobOpenings.map((job, index) => (
               <motion.div
                 key={job.id}
                 initial={{ opacity: 0, y: 20 }}

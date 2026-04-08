@@ -22,6 +22,7 @@ import {
 import type { Category, Product, Project } from '@/lib/types';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useSiteSettings, whatsappLink } from '@/lib/siteSettings';
+import { CategoryCardSkeleton, ProductCardSkeleton, ProjectCardSkeleton } from '@/components/shared/skeletons';
 
 function useTyping(text: string, speed = 40, delay = 300, enabled = true) {
   const [displayed, setDisplayed] = useState('');
@@ -219,12 +220,20 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const s = useSiteSettings();
 
   useEffect(() => {
-    fetchCategories().then(setCategories);
-    fetchFeaturedProducts().then(setFeaturedProducts);
-    fetchProjects().then(setProjects);
+    Promise.all([
+      fetchCategories(),
+      fetchFeaturedProducts(),
+      fetchProjects(),
+    ]).then(([cats, products, projs]) => {
+      setCategories(cats);
+      setFeaturedProducts(products);
+      setProjects(projs);
+      setLoading(false);
+    });
   }, []);
 
   const yearsActive = new Date().getFullYear() - parseInt(s.established_year || '2004');
@@ -329,9 +338,11 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category) => (
-              <CategoryCard key={category.id} {...category} />
-            ))}
+            {loading
+              ? [...Array(4)].map((_, i) => <CategoryCardSkeleton key={i} />)
+              : categories.map((category) => (
+                  <CategoryCard key={category.id} {...category} />
+                ))}
           </div>
         </div>
       </section>
@@ -355,9 +366,11 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} {...product} />
-            ))}
+            {loading
+              ? [...Array(3)].map((_, i) => <ProductCardSkeleton key={i} />)
+              : featuredProducts.map((product) => (
+                  <ProductCard key={product.id} {...product} />
+                ))}
           </div>
 
           <div className="text-center mt-12">
@@ -394,7 +407,9 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {projects.map((project, index) => (
+            {loading
+              ? [...Array(3)].map((_, i) => <ProjectCardSkeleton key={i} />)
+              : projects.map((project, index) => (
               <motion.div
                 key={project.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -435,6 +450,7 @@ export default function Home() {
       </section>
 
       {/* Why Choose Us */}
+
       <section className="py-24 bg-slate-50">
         <div className="container mx-auto px-4">
           <motion.div

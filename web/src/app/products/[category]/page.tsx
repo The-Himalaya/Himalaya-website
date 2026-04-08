@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { fetchCategoryBySlug, fetchCategoryProducts } from '@/lib/api';
 import type { Category, Product } from '@/lib/types';
+import { CategoryPageSkeleton } from '@/components/shared/skeletons';
 
 interface ProductCategoryPageProps {
   params: Promise<{ category: string }>;
@@ -48,7 +49,7 @@ export default function ProductCategory({ params }: ProductCategoryPageProps) {
   const uniqueLoadClasses = [...new Set(allProducts.map((p) => p.loadClass).filter(Boolean))];
 
   if (loading) {
-    return <div className="min-h-screen pt-20 flex items-center justify-center"><p className="text-lg text-slate-500">Loading...</p></div>;
+    return <CategoryPageSkeleton />;
   }
 
   if (!category) {

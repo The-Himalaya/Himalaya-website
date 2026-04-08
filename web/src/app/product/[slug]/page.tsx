@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { fetchProductBySlug, fetchProducts } from '@/lib/api';
 import type { Product } from '@/lib/types';
+import { ProductDetailSkeleton } from '@/components/shared/skeletons';
 import { analytics } from '@/lib/analytics';
 
 interface ProductDetailPageProps {
@@ -58,7 +59,7 @@ export default function ProductDetail({ params }: ProductDetailPageProps) {
   }, [params]);
 
   if (loading) {
-    return <div className="min-h-screen pt-20 flex items-center justify-center"><p className="text-lg text-slate-500">Loading...</p></div>;
+    return <ProductDetailSkeleton />;
   }
 
   if (!product) {
