@@ -2,6 +2,54 @@
 {% block title %}{{ 'Edit Category' if editing else 'New Category' }}{% endblock %}
 {% block page_title %}{{ 'Edit: ' + category.name if editing else 'New Category' }}{% endblock %}
 
+{% block extra_head %}
+<style>
+  .drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #014871;
+    background: #f0f7ff;
+  }
+  .drop-zone input[type="file"] { display: none; }
+  #img-preview {
+    display: none;
+    margin-top: 1rem;
+    position: relative;
+    width: 100%;
+    max-height: 220px;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #f1f5f9;
+  }
+  #img-preview img {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    display: block;
+  }
+  #img-preview .remove-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .current-image { border-radius: 0.5rem; overflow: hidden; background: #f1f5f9; }
+  .current-image img { width: 100%; max-height: 180px; object-fit: cover; display: block; }
+</style>
+{% endblock %}
+
 {% block page_actions %}
 <a href="/admin/categories" class="btn-secondary">
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -10,7 +58,10 @@
 {% endblock %}
 
 {% block content %}
-<form method="POST" action="{% if editing %}/admin/categories/{{ category.id }}/edit{% else %}/admin/categories/new{% endif %}" class="max-w-2xl">
+<form method="POST"
+      action="{% if editing %}/admin/categories/{{ category.id }}/edit{% else %}/admin/categories/new{% endif %}"
+      enctype="multipart/form-data"
+      class="max-w-2xl">
   <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
     <h3 class="section-title">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
@@ -25,10 +76,41 @@
         <label class="form-label">Description</label>
         <textarea name="description" rows="3" class="form-input" placeholder="Category description...">{{ category.description if category else '' }}</textarea>
       </div>
+
+      {# ── Category Image ── #}
       <div>
-        <label class="form-label">Image URL</label>
-        <input type="text" name="image" value="{{ category.image if category else '' }}" class="form-input" placeholder="https://...">
+        <label class="form-label">Category Image</label>
+
+        {% if editing and category.image %}
+        <div class="current-image mb-3" id="current-img-wrap">
+          <img src="{{ category.image }}" alt="{{ category.name }}" id="current-img">
+          <div class="flex items-center justify-between px-3 py-2 bg-slate-50 text-xs text-himalaya-smoke">
+            <span>Current image — upload a new one to replace it</span>
+            <button type="button" onclick="clearCurrent()" class="text-red-400 hover:text-red-600 font-medium">Remove</button>
+          </div>
+          <input type="hidden" name="keep_image" value="1" id="keep-image-flag">
+        </div>
+        {% endif %}
+
+        <div class="drop-zone" id="drop-zone"
+             onclick="document.getElementById('image_file').click()"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event)">
+          <svg class="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <p class="text-sm text-himalaya-smoke">Drop image here or <span class="text-himalaya-navy font-semibold">browse</span></p>
+          <p class="text-xs text-himalaya-smoke/60 mt-1">JPG, PNG, WEBP supported</p>
+          <input type="file" id="image_file" name="image_file" accept="image/*" onchange="previewImage(this)">
+        </div>
+
+        <div id="img-preview">
+          <img id="preview-img" src="" alt="Preview">
+          <button type="button" class="remove-btn" onclick="clearPreview()">×</button>
+        </div>
       </div>
+
       <div>
         <label class="form-label">Advantages</label>
         <textarea name="advantages" rows="5" class="form-input" placeholder="One advantage per line">{% if category and category.advantages %}{{ category.advantages | join('\n') }}{% endif %}</textarea>
@@ -38,4 +120,50 @@
     </div>
   </div>
 </form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function previewImage(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('preview-img').src = e.target.result;
+    document.getElementById('img-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function clearPreview() {
+  document.getElementById('image_file').value = '';
+  document.getElementById('img-preview').style.display = 'none';
+  document.getElementById('preview-img').src = '';
+}
+
+function clearCurrent() {
+  const wrap = document.getElementById('current-img-wrap');
+  if (wrap) wrap.style.display = 'none';
+  const flag = document.getElementById('keep-image-flag');
+  if (flag) flag.remove();
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function handleDragLeave(e) {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  const input = document.getElementById('image_file');
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  previewImage(input);
+}
+</script>
 {% endblock %}

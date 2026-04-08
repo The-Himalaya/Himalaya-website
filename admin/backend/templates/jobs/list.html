@@ -10,8 +10,11 @@
 {% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-  <table class="w-full">
+
+{# ── Posted Openings ── #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-10">
+  <div class="overflow-x-auto">
+  <table class="w-full min-w-[600px]">
     <thead class="bg-gray-50/80">
       <tr>
         <th class="table-header">Title</th>
@@ -50,5 +53,109 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
+
+{# ── Career Applications ── #}
+<div class="mb-4 flex items-center justify-between">
+  <div>
+    <h2 class="text-lg font-semibold text-himalaya-black">Career Applications</h2>
+    <p class="text-sm text-himalaya-smoke mt-0.5">{{ applications|length }} application{{ 's' if applications|length != 1 else '' }} received</p>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+  <table class="w-full min-w-[700px]">
+    <thead class="bg-gray-50/80">
+      <tr>
+        <th class="table-header">Applicant</th>
+        <th class="table-header">Contact</th>
+        <th class="table-header">Position</th>
+        <th class="table-header">Experience</th>
+        <th class="table-header">Resume</th>
+        <th class="table-header">Applied</th>
+        <th class="table-header text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for app in applications %}
+      <tr class="hover:bg-himalaya-white/50 transition-colors align-top">
+        <td class="table-cell">
+          <span class="font-medium text-himalaya-black">{{ app.name }}</span>
+        </td>
+        <td class="table-cell text-sm text-himalaya-smoke">
+          <a href="mailto:{{ app.email }}" class="hover:text-himalaya-navy block">{{ app.email }}</a>
+          <a href="tel:{{ app.phone }}" class="hover:text-himalaya-navy block">{{ app.phone }}</a>
+        </td>
+        <td class="table-cell text-sm">{{ app.position or '—' }}</td>
+        <td class="table-cell">
+          {% set exp = app.experience %}
+          {% if exp == 'fresher' %}
+            <span class="badge badge-blue">Fresher</span>
+          {% elif exp == 'experienced' %}
+            <span class="badge badge-green">1–2 yrs</span>
+          {% elif exp == 'expert' %}
+            <span class="badge" style="background:#fef3c7;color:#92400e;">3–5 yrs</span>
+          {% elif exp == 'professional' %}
+            <span class="badge" style="background:#ede9fe;color:#5b21b6;">5+ yrs</span>
+          {% else %}
+            <span class="text-himalaya-smoke text-sm">{{ exp }}</span>
+          {% endif %}
+        </td>
+        <td class="table-cell text-sm">
+          {% if app.resume_url %}
+            <a href="{{ app.resume_url }}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-1 text-himalaya-navy hover:underline">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              {{ app.resume_name or 'Download' }}
+            </a>
+          {% else %}
+            <span class="text-himalaya-smoke">—</span>
+          {% endif %}
+        </td>
+        <td class="table-cell text-sm text-himalaya-smoke">
+          {% if app.created_at %}
+            {{ app.created_at.strftime('%d %b %Y') if app.created_at.strftime is defined else app.created_at }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="table-cell text-right">
+          {# Cover letter popover trigger #}
+          {% if app.cover_letter %}
+          <button type="button"
+            onclick="document.getElementById('cl-{{ app.id }}').classList.toggle('hidden')"
+            class="action-btn action-btn-edit mb-1" title="View cover letter">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </button>
+          {% endif %}
+          <form method="POST" action="/admin/jobs/applications/{{ app.id }}/delete" class="inline">
+            <button type="button" onclick="confirmDelete(this.parentElement)" class="action-btn action-btn-delete" title="Delete">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% if app.cover_letter %}
+      <tr id="cl-{{ app.id }}" class="hidden bg-amber-50/40">
+        <td colspan="7" class="px-6 pb-4 text-sm text-himalaya-smoke whitespace-pre-wrap">
+          <span class="font-medium text-himalaya-black block mb-1">Cover Letter:</span>{{ app.cover_letter }}
+        </td>
+      </tr>
+      {% endif %}
+      {% else %}
+      <tr><td colspan="7" class="px-6 py-12 text-center text-himalaya-smoke">No applications yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
 {% endblock %}

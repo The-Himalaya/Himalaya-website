@@ -17,7 +17,7 @@
       Testimonial Details
     </h3>
     <div class="space-y-5">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="form-label">Name <span class="text-red-400">*</span></label>
           <input type="text" name="name" value="{{ testimonial.name if testimonial else '' }}" required class="form-input">
@@ -27,7 +27,7 @@
           <input type="text" name="company" value="{{ testimonial.company if testimonial else '' }}" class="form-input">
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="form-label">Position</label>
           <input type="text" name="position" value="{{ testimonial.position if testimonial else '' }}" class="form-input">

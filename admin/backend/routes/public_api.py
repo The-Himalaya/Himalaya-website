@@ -25,9 +25,10 @@ def product_to_dict(p: Product) -> dict:
         "loadClass": p.load_class or "",
         "standard": p.standard or "",
         "image": p.image or "",
-        "model3d": p.model_3d or "",
+        "images": p.images if isinstance(p.images, list) else [],
+        "datasheet": p.datasheet or "",
         "description": p.description or "",
-        "specs": p.specs if isinstance(p.specs, dict) else {},
+        "specs": p.specs or "",
         "applications": p.applications if isinstance(p.applications, list) else [],
         "installation": p.installation if isinstance(p.installation, list) else [],
         "featured": bool(p.featured),
@@ -50,7 +51,7 @@ def category_to_dict(c: Category) -> dict:
 
 @router.get("/categories")
 async def api_categories(db: Session = Depends(get_db)):
-    cats = db.query(Category).order_by(Category.name).all()
+    cats = db.query(Category).order_by(Category.id).all()
     return [category_to_dict(c) for c in cats]
 
 
@@ -106,10 +107,31 @@ async def api_blog_posts(db: Session = Depends(get_db)):
             "author": p.author or "",
             "date": p.created_at.strftime("%Y-%m-%d") if p.created_at else "",
             "image": p.image or "",
+            "images": p.images if isinstance(p.images, list) else [],
             "featured": bool(p.featured),
         }
         for p in posts
     ]
+
+
+@router.get("/blog-posts/{slug}")
+async def api_blog_post_by_slug(slug: str, db: Session = Depends(get_db)):
+    p = db.query(BlogPost).filter(BlogPost.slug == slug, BlogPost.published == True).first()
+    if not p:
+        return None
+    return {
+        "id": str(p.id),
+        "title": p.title,
+        "slug": p.slug,
+        "excerpt": p.excerpt or "",
+        "content": p.content or "",
+        "category": p.category or "",
+        "author": p.author or "",
+        "date": p.created_at.strftime("%Y-%m-%d") if p.created_at else "",
+        "image": p.image or "",
+        "images": p.images if isinstance(p.images, list) else [],
+        "featured": bool(p.featured),
+    }
 
 
 # ── Jobs ────────────────────────────────────────────────
@@ -147,10 +169,44 @@ async def api_projects(db: Session = Depends(get_db)):
             "products": p.products_used if isinstance(p.products_used, list) else [],
             "quantity": p.quantity or "",
             "image": p.image or "",
+            "images": p.images if isinstance(p.images, list) else [],
+            "videos": p.videos if isinstance(p.videos, list) else [],
             "description": p.description or "",
         }
         for p in projs
     ]
+
+
+# ── Site Settings ──────────────────────────────────────
+
+@router.get("/site-settings")
+async def api_site_settings():
+    try:
+        from firebase_admin import firestore as fb_firestore
+        doc = fb_firestore.client().collection("site_settings").document("config").get()
+        if doc.exists:
+            return doc.to_dict()
+    except Exception:
+        pass
+    return {
+        "company_name": "The Himalaya",
+        "tagline": "Built to Last. Built for India.",
+        "phone": "+91 98765 43210",
+        "phone2": "",
+        "whatsapp": "+919876543210",
+        "email": "info@thehimalaya.co.in",
+        "address": "Industrial Area, Phase 2",
+        "city": "Ahmedabad",
+        "state": "Gujarat",
+        "pincode": "380001",
+        "country": "India",
+        "gst": "24AAAAA0000A1Z5",
+        "established_year": "2004",
+        "linkedin": "https://www.linkedin.com/company/himalaya-composites-precast-pvt-ltd/",
+        "facebook": "https://facebook.com",
+        "instagram": "https://www.instagram.com/thehimalaya_",
+        "map_embed_url": "",
+    }
 
 
 # ── Testimonials ───────────────────────────────────────

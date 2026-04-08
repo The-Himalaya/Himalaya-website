@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(grep -n \"setCategory\\\\|setProduct\\\\|null\" c:/Himalaya_website/web/src/app/products/[category]/page.tsx)",
+      "Bash(xargs grep:*)"
+    ]
+  }
+}

@@ -10,18 +10,7 @@
 {% endblock %}
 
 {% block extra_head %}
-<!-- Google model-viewer for 3D GLB preview -->
-<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 <style>
-  model-viewer {
-    width: 100%;
-    height: 280px;
-    border-radius: 0.75rem;
-    background: #f8fafc;
-    --poster-color: transparent;
-  }
-  model-viewer::part(default-progress-bar) { background: #014871; }
-
   .upload-zone {
     position: relative;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -64,7 +53,7 @@
             <input type="text" name="name" value="{{ product.name if product else '' }}" required class="form-input" placeholder="e.g., Round Manhole Cover D400">
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="form-label">Category <span class="text-red-400">*</span></label>
               <select name="category_id" required class="form-input">
@@ -96,76 +85,65 @@
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <h3 class="section-title">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          Product Image
+          Product Images
         </h3>
 
-        {% if product and product.image %}
-        <div class="flex items-start gap-4 mb-4">
-          <img src="{{ product.image }}" alt="Current image" class="w-28 h-28 rounded-lg object-cover border border-gray-200">
-          <div class="flex-1 pt-1">
-            <p class="text-sm text-himalaya-smoke mb-2">Current image uploaded</p>
-            <form method="POST" action="/admin/products/{{ product.id }}/remove-image" class="inline">
-              <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium">Remove image</button>
+        {% if product and product.images %}
+        <div class="grid grid-cols-3 gap-3 mb-4" id="existing-images">
+          {% for img in product.images %}
+          <div class="relative group rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50">
+            <img src="{{ img }}" alt="Image {{ loop.index }}" class="w-full h-full object-cover">
+            {% if loop.first %}
+            <span class="absolute top-1 left-1 text-[10px] bg-himalaya-navy text-white px-1.5 py-0.5 rounded font-medium">Primary</span>
+            {% endif %}
+            <form method="POST" action="/admin/products/{{ product.id }}/remove-image/{{ loop.index0 }}" class="inline">
+              <button type="submit" title="Remove"
+                class="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
             </form>
           </div>
+          {% endfor %}
         </div>
-        <p class="text-xs text-himalaya-smoke mb-3">Upload a new image to replace the current one:</p>
+        <p class="text-xs text-himalaya-smoke mb-3">Add more images below (first image is primary):</p>
         {% endif %}
 
         <div class="upload-zone" id="image-zone" onclick="this.querySelector('input').click()">
-          <input type="file" name="image_file" accept=".jpg,.jpeg,.png,.webp,.gif,.svg" onchange="previewImage(this)">
+          <input type="file" name="image_files" accept=".jpg,.jpeg,.png,.webp,.gif,.svg" multiple onchange="previewImages(this)">
           <svg class="w-8 h-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          <p class="text-sm text-himalaya-smoke font-medium" id="image-label">Click to select an image</p>
-          <p class="text-[10px] text-gray-400 mt-1">JPG, PNG, WebP, SVG (max 10MB)</p>
+          <p class="text-sm text-himalaya-smoke font-medium" id="image-label">Click to select images</p>
+          <p class="text-[10px] text-gray-400 mt-1">JPG, PNG, WebP, SVG · Multiple allowed · max 10MB each</p>
         </div>
-        <img id="image-preview" class="hidden w-full max-h-48 object-contain rounded-lg border border-gray-100 mt-3">
+        <div id="image-previews" class="grid grid-cols-3 gap-3 mt-3 hidden"></div>
       </div>
 
-      <!-- 3D Model Upload -->
+      <!-- Datasheet Upload -->
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <h3 class="section-title">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-          3D Model
-          <span class="title-badge">Optional</span>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Datasheet
+          <span class="title-badge">Optional · PDF</span>
         </h3>
 
-        {% if product and product.model_3d %}
-        <div class="space-y-3 mb-4">
-          <model-viewer
-            src="{{ product.model_3d }}"
-            alt="{{ product.name }} 3D Model"
-            auto-rotate
-            camera-controls
-            shadow-intensity="1"
-            environment-image="neutral"
-            exposure="1.2"
-          ></model-viewer>
-          <div class="flex items-center justify-between">
-            <p class="text-sm text-himalaya-smoke">3D model loaded</p>
-            <form method="POST" action="/admin/products/{{ product.id }}/remove-model" class="inline">
-              <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium">Remove model</button>
-            </form>
+        {% if product and product.datasheet %}
+        <div class="flex items-center gap-3 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+          <svg class="w-8 h-8 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM12 17v-4h1.5l-2.5-3-2.5 3H10v4h2z" fill-rule="evenodd" clip-rule="evenodd"/></svg>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-himalaya-black truncate">Datasheet uploaded</p>
+            <a href="{{ product.datasheet }}" target="_blank" class="text-xs text-himalaya-navy hover:underline">View PDF</a>
           </div>
+          <form method="POST" action="/admin/products/{{ product.id }}/remove-datasheet" class="inline">
+            <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium whitespace-nowrap">Remove</button>
+          </form>
         </div>
-        <p class="text-xs text-himalaya-smoke mb-3">Upload a new model to replace:</p>
+        <p class="text-xs text-himalaya-smoke mb-3">Upload a new PDF to replace the current one:</p>
         {% endif %}
 
-        <div class="upload-zone" id="model-zone" onclick="this.querySelector('input').click()">
-          <input type="file" name="model_file" accept=".glb,.gltf" onchange="previewModel(this)">
-          <svg class="w-8 h-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-          <p class="text-sm text-himalaya-smoke font-medium" id="model-label">Click to select a 3D model</p>
-          <p class="text-[10px] text-gray-400 mt-1">GLB or GLTF format</p>
-        </div>
-        <div id="model-preview-container" class="hidden mt-3">
-          <model-viewer
-            id="model-preview"
-            alt="3D Preview"
-            auto-rotate
-            camera-controls
-            shadow-intensity="1"
-            environment-image="neutral"
-            exposure="1.2"
-          ></model-viewer>
+        <div class="upload-zone" id="datasheet-zone" onclick="this.querySelector('input').click()">
+          <input type="file" name="datasheet_file" accept=".pdf" onchange="previewDatasheet(this)">
+          <svg class="w-8 h-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <p class="text-sm text-himalaya-smoke font-medium" id="datasheet-label">Click to select a PDF</p>
+          <p class="text-[10px] text-gray-400 mt-1">PDF only (max 20MB)</p>
         </div>
       </div>
 
@@ -174,11 +152,10 @@
         <h3 class="section-title">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           Specifications
-          <span class="title-badge">JSON</span>
         </h3>
         <div>
-          <textarea name="specs_json" rows="8" class="form-input font-mono text-xs" placeholder='{"diameter": "600mm", "weight": "18kg"}'>{% if product and product.specs %}{{ product.specs | tojson(indent=2) }}{% else %}{}{% endif %}</textarea>
-          <p class="text-xs text-himalaya-smoke mt-1.5">Enter specs as a JSON object with key-value pairs</p>
+          <textarea name="specs" rows="8" class="form-input text-sm" placeholder="Diameter: 600mm&#10;Weight: 18kg&#10;Height: 100mm">{{ product.specs if product and product.specs else '' }}</textarea>
+          <p class="text-xs text-himalaya-smoke mt-1.5">One specification per line (e.g., Diameter: 600mm)</p>
         </div>
       </div>
     </div>
@@ -227,39 +204,39 @@
 
 {% block extra_scripts %}
 <script>
-function previewImage(input) {
+function previewImages(input) {
   const zone = document.getElementById('image-zone');
   const label = document.getElementById('image-label');
-  const preview = document.getElementById('image-preview');
+  const previews = document.getElementById('image-previews');
 
-  if (input.files && input.files[0]) {
-    const file = input.files[0];
-    label.textContent = file.name;
+  if (input.files && input.files.length > 0) {
+    label.textContent = `${input.files.length} image${input.files.length > 1 ? 's' : ''} selected`;
     zone.classList.add('has-file');
+    previews.innerHTML = '';
+    previews.classList.remove('hidden');
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      preview.src = e.target.result;
-      preview.classList.remove('hidden');
-    };
-    reader.readAsDataURL(file);
+    Array.from(input.files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const div = document.createElement('div');
+        div.className = 'rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50';
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.className = 'w-full h-full object-cover';
+        div.appendChild(img);
+        previews.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    });
   }
 }
 
-function previewModel(input) {
-  const zone = document.getElementById('model-zone');
-  const label = document.getElementById('model-label');
-  const container = document.getElementById('model-preview-container');
-  const viewer = document.getElementById('model-preview');
-
+function previewDatasheet(input) {
+  const zone = document.getElementById('datasheet-zone');
+  const label = document.getElementById('datasheet-label');
   if (input.files && input.files[0]) {
-    const file = input.files[0];
-    label.textContent = file.name;
+    label.textContent = input.files[0].name;
     zone.classList.add('has-file');
-
-    const url = URL.createObjectURL(file);
-    viewer.setAttribute('src', url);
-    container.classList.remove('hidden');
   }
 }
 </script>

@@ -1,0 +1,18 @@
+# Next.js
+web/.next/
+web/node_modules/
+web/.env.local
+
+# Admin (Python)
+admin/backend/__pycache__/
+admin/backend/routes/__pycache__/
+admin/backend/*.db
+admin/backend/static/uploads/images/
+admin/backend/static/uploads/models/
+admin/backend/.env
+admin/backend/serviceAccountKey.json
+
+# Environment
+.env
+.env.local
+.env*.local

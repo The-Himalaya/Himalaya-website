@@ -2,6 +2,46 @@
 {% block title %}{{ 'Edit Project' if editing else 'New Project' }}{% endblock %}
 {% block page_title %}{{ 'Edit: ' + project.name if editing else 'New Project' }}{% endblock %}
 
+{% block extra_head %}
+<style>
+  .drop-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 0.75rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8fafc;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: #014871;
+    background: rgba(1,72,113,0.04);
+  }
+  .drop-zone input[type="file"] { display: none; }
+  .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+  .media-thumb {
+    position: relative; border-radius: 0.5rem; overflow: hidden;
+    background: #f1f5f9; aspect-ratio: 16/9;
+  }
+  .media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .media-thumb .remove-btn {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(220,38,38,0.9); color: #fff;
+    border: none; border-radius: 50%; width: 22px; height: 22px;
+    font-size: 14px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .media-thumb .remove-btn:hover { background: #dc2626; }
+  .media-thumb .file-name {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.55); color: #fff;
+    font-size: 10px; padding: 2px 5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+</style>
+{% endblock %}
+
 {% block page_actions %}
 <a href="/admin/projects" class="btn-secondary">
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -10,51 +50,200 @@
 {% endblock %}
 
 {% block content %}
-<form method="POST" action="{% if editing %}/admin/projects/{{ project.id }}/edit{% else %}/admin/projects/new{% endif %}" class="max-w-3xl">
-  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-    <h3 class="section-title">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-      Project Details
-    </h3>
-    <div class="space-y-5">
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="form-label">Project Name <span class="text-red-400">*</span></label>
-          <input type="text" name="name" value="{{ project.name if project else '' }}" required class="form-input">
-        </div>
-        <div>
-          <label class="form-label">Client</label>
-          <input type="text" name="client" value="{{ project.client if project else '' }}" class="form-input">
+<form method="POST"
+      action="{% if editing %}/admin/projects/{{ project.id }}/edit{% else %}/admin/projects/new{% endif %}"
+      enctype="multipart/form-data"
+      class="max-w-4xl">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    {# ── Left: project details ── #}
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 class="section-title">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          Project Details
+        </h3>
+        <div class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="form-label">Project Name <span class="text-red-400">*</span></label>
+              <input type="text" name="name" value="{{ project.name if project else '' }}" required class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Client</label>
+              <input type="text" name="client" value="{{ project.client if project else '' }}" class="form-input">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="form-label">Location</label>
+              <input type="text" name="location" value="{{ project.location if project else '' }}" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Year</label>
+              <input type="number" name="year" value="{{ project.year if project else 2026 }}" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Quantity</label>
+              <input type="text" name="quantity" value="{{ project.quantity if project else '' }}" class="form-input" placeholder="e.g., 5000+ units">
+            </div>
+          </div>
+          <div>
+            <label class="form-label">Products Used</label>
+            <input type="text" name="products_used"
+                   value="{% if project and project.products_used %}{{ project.products_used | join(', ') }}{% endif %}"
+                   class="form-input" placeholder="Comma-separated: FRP D400 Covers, RCC Chambers">
+          </div>
+          <div>
+            <label class="form-label">Description</label>
+            <textarea name="description" rows="4" class="form-input">{{ project.description if project else '' }}</textarea>
+          </div>
         </div>
       </div>
-      <div class="grid grid-cols-3 gap-4">
-        <div>
-          <label class="form-label">Location</label>
-          <input type="text" name="location" value="{{ project.location if project else '' }}" class="form-input">
+
+      {# ── Media ── #}
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 class="section-title">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Images
+          <span class="title-badge">JPG · PNG · WEBP</span>
+        </h3>
+
+        {% if editing and project.images %}
+        <p class="text-xs text-himalaya-smoke mb-2">Existing — click × to remove</p>
+        <div class="media-grid" id="existing-images">
+          {% for img in project.images %}
+          <div class="media-thumb" id="pi-{{ loop.index0 }}">
+            <input type="hidden" name="keep_images" value="{{ img }}">
+            <img src="{{ img }}" alt="image {{ loop.index }}">
+            <button type="button" class="remove-btn" onclick="removeExisting('pi-{{ loop.index0 }}')">×</button>
+          </div>
+          {% endfor %}
         </div>
-        <div>
-          <label class="form-label">Year</label>
-          <input type="number" name="year" value="{{ project.year if project else 2026 }}" class="form-input">
+        <div class="mt-4 border-t border-gray-100 pt-4"></div>
+        {% endif %}
+
+        <p class="text-xs text-himalaya-smoke mb-2">{{ 'Add more images' if editing and project.images else 'Upload images' }}</p>
+        <div class="drop-zone" id="img-drop" onclick="document.getElementById('new-images-input').click()"
+             ondragover="handleDragOver(event,'img-drop')" ondragleave="handleDragLeave('img-drop')"
+             ondrop="handleDrop(event,'new-images-input','img-preview','image/*')">
+          <svg class="w-8 h-8 mx-auto text-himalaya-smoke/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <p class="text-sm text-himalaya-smoke">Drop images here or <span class="text-himalaya-navy font-semibold">browse</span></p>
+          <p class="text-xs text-himalaya-smoke/60 mt-1">Multiple files supported</p>
+          <input type="file" id="new-images-input" name="new_images" multiple accept="image/*"
+                 onchange="previewFiles(this,'img-preview')">
         </div>
-        <div>
-          <label class="form-label">Quantity</label>
-          <input type="text" name="quantity" value="{{ project.quantity if project else '' }}" class="form-input" placeholder="e.g., 5000+ units">
+        <div class="media-grid" id="img-preview"></div>
+
+        {# ── Videos ── #}
+        <h3 class="section-title mt-6">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Videos
+          <span class="title-badge">MP4 · MOV · WEBM</span>
+        </h3>
+
+        {% if editing and project.videos %}
+        <p class="text-xs text-himalaya-smoke mb-2">Existing — click × to remove</p>
+        <div class="media-grid" id="existing-videos">
+          {% for vid in project.videos %}
+          <div class="media-thumb" id="pv-{{ loop.index0 }}">
+            <input type="hidden" name="keep_videos" value="{{ vid }}">
+            <video src="{{ vid }}" muted preload="metadata"></video>
+            <span class="file-name">{{ vid.split('/')[-1] }}</span>
+            <button type="button" class="remove-btn" onclick="removeExisting('pv-{{ loop.index0 }}')">×</button>
+          </div>
+          {% endfor %}
         </div>
+        <div class="mt-4 border-t border-gray-100 pt-4"></div>
+        {% endif %}
+
+        <p class="text-xs text-himalaya-smoke mb-2">{{ 'Add more videos' if editing and project.videos else 'Upload videos' }}</p>
+        <div class="drop-zone" id="vid-drop" onclick="document.getElementById('new-videos-input').click()"
+             ondragover="handleDragOver(event,'vid-drop')" ondragleave="handleDragLeave('vid-drop')"
+             ondrop="handleDrop(event,'new-videos-input','vid-preview','video/*')">
+          <svg class="w-8 h-8 mx-auto text-himalaya-smoke/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+          <p class="text-sm text-himalaya-smoke">Drop videos here or <span class="text-himalaya-navy font-semibold">browse</span></p>
+          <p class="text-xs text-himalaya-smoke/60 mt-1">MP4, MOV, WEBM supported</p>
+          <input type="file" id="new-videos-input" name="new_videos" multiple accept="video/*"
+                 onchange="previewFiles(this,'vid-preview')">
+        </div>
+        <div class="media-grid" id="vid-preview"></div>
       </div>
-      <div>
-        <label class="form-label">Products Used</label>
-        <input type="text" name="products_used" value="{% if project and project.products_used %}{{ project.products_used | join(', ') }}{% endif %}" class="form-input" placeholder="Comma-separated: FRP D400 Covers, RCC Chambers">
-      </div>
-      <div>
-        <label class="form-label">Image URL</label>
-        <input type="text" name="image" value="{{ project.image if project else '' }}" class="form-input" placeholder="https://...">
-      </div>
-      <div>
-        <label class="form-label">Description</label>
-        <textarea name="description" rows="4" class="form-input">{{ project.description if project else '' }}</textarea>
-      </div>
-      <button type="submit" class="btn-primary">{{ 'Update Project' if editing else 'Create Project' }}</button>
     </div>
+
+    {# ── Right: publish sidebar ── #}
+    <div class="space-y-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 class="section-title">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          Save
+        </h3>
+        <button type="submit" class="btn-primary w-full">{{ 'Update Project' if editing else 'Create Project' }}</button>
+      </div>
+
+      {% if editing and (project.images or project.videos) %}
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-himalaya-smoke font-semibold mb-2">Media summary</p>
+        <p class="text-sm text-himalaya-black">{{ (project.images or [])|length }} image{{ 's' if (project.images or [])|length != 1 else '' }}</p>
+        <p class="text-sm text-himalaya-black">{{ (project.videos or [])|length }} video{{ 's' if (project.videos or [])|length != 1 else '' }}</p>
+      </div>
+      {% endif %}
+    </div>
+
   </div>
 </form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function removeExisting(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function previewFiles(input, previewId) {
+  const container = document.getElementById(previewId);
+  container.innerHTML = '';
+  Array.from(input.files).forEach(file => {
+    const url = URL.createObjectURL(file);
+    const isVideo = file.type.startsWith('video/');
+    const thumb = document.createElement('div');
+    thumb.className = 'media-thumb';
+    if (isVideo) {
+      thumb.innerHTML = `<video src="${url}" muted preload="metadata"></video><span class="file-name">${file.name}</span>`;
+    } else {
+      thumb.innerHTML = `<img src="${url}" alt="${file.name}">`;
+    }
+    container.appendChild(thumb);
+  });
+}
+
+function handleDragOver(e, zoneId) {
+  e.preventDefault();
+  document.getElementById(zoneId).classList.add('dragover');
+}
+function handleDragLeave(zoneId) {
+  document.getElementById(zoneId).classList.remove('dragover');
+}
+function handleDrop(e, inputId, previewId, accept) {
+  e.preventDefault();
+  const zoneId = e.currentTarget.id;
+  document.getElementById(zoneId).classList.remove('dragover');
+  const input = document.getElementById(inputId);
+  const files = Array.from(e.dataTransfer.files).filter(f => {
+    if (accept === 'image/*') return f.type.startsWith('image/');
+    if (accept === 'video/*') return f.type.startsWith('video/');
+    return true;
+  });
+  if (!files.length) return;
+  const dt = new DataTransfer();
+  files.forEach(f => dt.items.add(f));
+  input.files = dt.files;
+  previewFiles(input, previewId);
+}
+</script>
 {% endblock %}

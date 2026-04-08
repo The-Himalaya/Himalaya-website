@@ -12,11 +12,11 @@
 {% block content %}
 <!-- Filters -->
 <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6">
-  <form method="GET" action="/admin/products" class="flex items-center gap-3 flex-wrap">
-    <div class="flex-1 min-w-[200px] max-w-xs">
+  <form method="GET" action="/admin/products" class="flex flex-wrap items-center gap-3">
+    <div class="w-full sm:w-auto sm:flex-1 sm:min-w-[180px] sm:max-w-xs">
       <input type="text" name="search" value="{{ search }}" placeholder="Search products..." class="form-input">
     </div>
-    <div class="min-w-[180px] max-w-xs">
+    <div class="w-full sm:w-auto sm:min-w-[160px] sm:max-w-xs">
       <select name="category" class="form-input">
         <option value="">All Categories</option>
         {% for cat in categories %}
@@ -24,20 +24,23 @@
         {% endfor %}
       </select>
     </div>
-    <button type="submit" class="btn-primary">Filter</button>
-    <a href="/admin/products" class="btn-secondary">Clear</a>
+    <div class="flex gap-2">
+      <button type="submit" class="btn-primary">Filter</button>
+      <a href="/admin/products" class="btn-secondary">Clear</a>
+    </div>
   </form>
 </div>
 
 <!-- Products Table -->
 <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-  <table class="w-full">
+  <div class="overflow-x-auto">
+  <table class="w-full min-w-[640px]">
     <thead class="bg-gray-50/80">
       <tr>
         <th class="table-header">Product</th>
         <th class="table-header">Category</th>
         <th class="table-header">Load Class</th>
-        <th class="table-header text-center">3D</th>
+        <th class="table-header text-center">Datasheet</th>
         <th class="table-header text-center">Featured</th>
         <th class="table-header text-right">Actions</th>
       </tr>
@@ -73,9 +76,9 @@
           {% endif %}
         </td>
         <td class="table-cell text-center">
-          {% if product.model_3d %}
-          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-violet-50" title="Has 3D model">
-            <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          {% if product.datasheet %}
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-50" title="Has datasheet">
+            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           </span>
           {% else %}
           <span class="text-gray-300">&mdash;</span>
@@ -112,5 +115,6 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 {% endblock %}

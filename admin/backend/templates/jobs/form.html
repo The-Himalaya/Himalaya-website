@@ -17,7 +17,7 @@
       Job Details
     </h3>
     <div class="space-y-5">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="form-label">Job Title <span class="text-red-400">*</span></label>
           <input type="text" name="title" value="{{ job.title if job else '' }}" required class="form-input">
@@ -27,7 +27,7 @@
           <input type="text" name="department" value="{{ job.department if job else '' }}" class="form-input" placeholder="e.g., Sales & Marketing">
         </div>
       </div>
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label class="form-label">Location</label>
           <input type="text" name="location" value="{{ job.location if job else '' }}" class="form-input" placeholder="e.g., Ahmedabad, Gujarat">
