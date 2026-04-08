@@ -602,7 +602,7 @@ export default function Home() {
                 </Button>
               </div>
               <p className="text-sm text-white/70 mt-4 text-center">
-                Or call us directly: <a href="tel:+919876543210" className="text-[var(--himalaya-gold)] hover:underline">+91 98765 43210</a>
+                Or call us directly: <a href="tel:+9190033516048" className="text-[var(--himalaya-gold)] hover:underline">+91 98765 43210</a>
               </p>
             </motion.div>
           </div>
