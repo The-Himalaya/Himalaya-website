@@ -1,38 +1,46 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import Image from 'next/image';
-import { Briefcase, MapPin, Clock, TrendingUp, Users, Target, Heart, ChevronDown, ChevronUp } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useState, useEffect } from "react";
+import { motion } from "motion/react";
+import Image from "next/image";
+import {
+  Briefcase,
+  MapPin,
+  Clock,
+  TrendingUp,
+  Users,
+  Target,
+  Heart,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { clientFetch } from '@/lib/api';
-import { jobOpenings as mockJobOpenings } from '@/lib/mockData';
-import type { JobOpening } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+} from "@/components/ui/select";
+import { clientFetch } from "@/lib/api";
+import { jobOpenings as mockJobOpenings } from "@/lib/mockData";
+import type { JobOpening } from "@/lib/types";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const applicationSchema = z.object({
-  name: z.string().min(2, 'Name is required'),
-  email: z.string().email('Invalid email'),
-  phone: z.string().min(10, 'Valid phone number required'),
-  position: z.string().min(1, 'Please select a position'),
-  experience: z.enum(['fresher', 'experienced', 'expert', 'professional'], {
-    required_error: 'Please select experience level',
-  }),
+  name: z.string().min(2, "Name is required"),
+  email: z.string().email("Invalid email"),
+  phone: z.string().min(10, "Valid phone number required"),
+  position: z.string().min(1, "Please select a position"),
+  experience: z.enum(["fresher", "experienced", "expert", "professional"]),
   coverLetter: z.string().optional(),
   resume: z.any().optional(),
 });
@@ -47,18 +55,25 @@ export default function Career() {
   const [jobOpenings, setJobOpenings] = useState<JobOpening[]>([]);
 
   useEffect(() => {
-    clientFetch<JobOpening[]>('/api/job-openings', mockJobOpenings).then(setJobOpenings);
+    clientFetch<JobOpening[]>("/api/job-openings", mockJobOpenings).then(
+      setJobOpenings,
+    );
   }, []);
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<ApplicationFormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm<ApplicationFormData>({
     resolver: zodResolver(applicationSchema),
   });
 
   const onSubmit = async (data: ApplicationFormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
-    let resumeUrl = '';
-    let resumeName = '';
+    let resumeUrl = "";
+    let resumeName = "";
 
     const fileList = data.resume as FileList | undefined;
     if (fileList && fileList.length > 0) {
@@ -70,27 +85,27 @@ export default function Career() {
         await uploadBytes(storageRef, file);
         resumeUrl = await getDownloadURL(storageRef);
       } catch (err) {
-        console.warn('Resume upload skipped (Storage unavailable):', err);
+        console.warn("Resume upload skipped (Storage unavailable):", err);
       }
     }
 
     try {
-      await addDoc(collection(db, 'job_details', 'main', 'applications'), {
+      await addDoc(collection(db, "job_details", "main", "applications"), {
         name: data.name,
         email: data.email,
         phone: data.phone,
         position: data.position,
         experience: data.experience,
-        cover_letter: data.coverLetter || '',
+        cover_letter: data.coverLetter || "",
         resume_url: resumeUrl,
         resume_name: resumeName,
-        status: 'new',
+        status: "new",
         created_at: serverTimestamp(),
       });
       setIsSubmitted(true);
     } catch (err) {
-      console.error('Failed to submit application:', err);
-      setSubmitError('Failed to submit your application. Please try again.');
+      console.error("Failed to submit application:", err);
+      setSubmitError("Failed to submit your application. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -99,23 +114,23 @@ export default function Career() {
   const whyWorkWithUs = [
     {
       icon: TrendingUp,
-      title: 'Growth Opportunities',
-      description: 'Fast-track career progression in a rapidly growing company',
+      title: "Growth Opportunities",
+      description: "Fast-track career progression in a rapidly growing company",
     },
     {
       icon: Users,
-      title: 'Team Culture',
-      description: 'Collaborative environment with experienced professionals',
+      title: "Team Culture",
+      description: "Collaborative environment with experienced professionals",
     },
     {
       icon: Target,
-      title: 'Impact',
-      description: 'Work on projects that shape India\'s infrastructure',
+      title: "Impact",
+      description: "Work on projects that shape India's infrastructure",
     },
     {
       icon: Heart,
-      title: 'Work-Life Balance',
-      description: 'Competitive benefits and supportive work culture',
+      title: "Work-Life Balance",
+      description: "Competitive benefits and supportive work culture",
     },
   ];
 
@@ -178,7 +193,9 @@ export default function Career() {
                 <h3 className="text-xl font-display uppercase text-[var(--himalaya-black)] mb-3">
                   {item.title}
                 </h3>
-                <p className="text-[var(--himalaya-smoke)]">{item.description}</p>
+                <p className="text-[var(--himalaya-smoke)]">
+                  {item.description}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -213,7 +230,9 @@ export default function Career() {
                 className="bg-[var(--himalaya-card)] border border-[var(--border)] rounded-lg overflow-hidden"
               >
                 <button
-                  onClick={() => setExpandedJob(expandedJob === job.id ? null : job.id)}
+                  onClick={() =>
+                    setExpandedJob(expandedJob === job.id ? null : job.id)
+                  }
                   className="w-full p-6 text-left flex items-center justify-between hover:bg-slate-50 transition-colors"
                 >
                   <div className="flex-1">
@@ -245,7 +264,7 @@ export default function Career() {
                 {expandedJob === job.id && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
+                    animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     className="border-t border-[var(--border)] p-6"
                   >
@@ -253,14 +272,18 @@ export default function Career() {
                       <h4 className="text-lg font-medium text-[var(--himalaya-black)] mb-2">
                         Experience Required
                       </h4>
-                      <p className="text-[var(--himalaya-smoke)]">{job.experience}</p>
+                      <p className="text-[var(--himalaya-smoke)]">
+                        {job.experience}
+                      </p>
                     </div>
 
                     <div className="mb-6">
                       <h4 className="text-lg font-medium text-[var(--himalaya-black)] mb-2">
                         Job Description
                       </h4>
-                      <p className="text-[var(--himalaya-smoke)]">{job.description}</p>
+                      <p className="text-[var(--himalaya-smoke)]">
+                        {job.description}
+                      </p>
                     </div>
 
                     <div className="mb-6">
@@ -269,8 +292,13 @@ export default function Career() {
                       </h4>
                       <ul className="space-y-2">
                         {job.requirements.map((req, i) => (
-                          <li key={i} className="flex items-start gap-2 text-[var(--himalaya-smoke)]">
-                            <span className="text-[var(--himalaya-red)] mt-1">•</span>
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-[var(--himalaya-smoke)]"
+                          >
+                            <span className="text-[var(--himalaya-red)] mt-1">
+                              •
+                            </span>
                             {req}
                           </li>
                         ))}
@@ -279,8 +307,10 @@ export default function Career() {
 
                     <Button
                       onClick={() => {
-                        setValue('position', job.title);
-                        document.getElementById('application-form')?.scrollIntoView({ behavior: 'smooth' });
+                        setValue("position", job.title);
+                        document
+                          .getElementById("application-form")
+                          ?.scrollIntoView({ behavior: "smooth" });
                       }}
                       className="bg-[var(--himalaya-red)] hover:bg-[var(--himalaya-red)]/90 text-white"
                     >
@@ -321,91 +351,149 @@ export default function Career() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <Label htmlFor="name" className="text-gray-700">Full Name *</Label>
+                    <Label htmlFor="name" className="text-gray-700">
+                      Full Name *
+                    </Label>
                     <Input
                       id="name"
-                      {...register('name')}
+                      {...register("name")}
                       className="mt-2 bg-white border-gray-200 text-gray-900"
                     />
-                    {errors.name && <p className="text-[var(--himalaya-red)] text-sm mt-1">{errors.name.message}</p>}
+                    {errors.name && (
+                      <p className="text-[var(--himalaya-red)] text-sm mt-1">
+                        {errors.name.message}
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <Label htmlFor="email" className="text-gray-700">Email *</Label>
+                    <Label htmlFor="email" className="text-gray-700">
+                      Email *
+                    </Label>
                     <Input
                       id="email"
                       type="email"
-                      {...register('email')}
+                      {...register("email")}
                       className="mt-2 bg-white border-gray-200 text-gray-900"
                     />
-                    {errors.email && <p className="text-[var(--himalaya-red)] text-sm mt-1">{errors.email.message}</p>}
+                    {errors.email && (
+                      <p className="text-[var(--himalaya-red)] text-sm mt-1">
+                        {errors.email.message}
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <Label htmlFor="phone" className="text-gray-700">Phone *</Label>
+                    <Label htmlFor="phone" className="text-gray-700">
+                      Phone *
+                    </Label>
                     <Input
                       id="phone"
-                      {...register('phone')}
+                      {...register("phone")}
                       className="mt-2 bg-white border-gray-200 text-gray-900"
                     />
-                    {errors.phone && <p className="text-[var(--himalaya-red)] text-sm mt-1">{errors.phone.message}</p>}
+                    {errors.phone && (
+                      <p className="text-[var(--himalaya-red)] text-sm mt-1">
+                        {errors.phone.message}
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <Label htmlFor="position" className="text-gray-700">Position *</Label>
+                    <Label htmlFor="position" className="text-gray-700">
+                      Position *
+                    </Label>
                     <Input
                       id="position"
-                      {...register('position')}
+                      {...register("position")}
                       className="mt-2 bg-white border-gray-200 text-gray-900"
                     />
-                    {errors.position && <p className="text-[var(--himalaya-red)] text-sm mt-1">{errors.position.message}</p>}
+                    {errors.position && (
+                      <p className="text-[var(--himalaya-red)] text-sm mt-1">
+                        {errors.position.message}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <Label className="text-gray-700">Experience Level *</Label>
-                  <Select onValueChange={(value) => setValue('experience', value as ApplicationFormData['experience'])}>
+                  <Select
+                    onValueChange={(value) =>
+                      setValue(
+                        "experience",
+                        value as ApplicationFormData["experience"],
+                      )
+                    }
+                  >
                     <SelectTrigger className="mt-2 bg-white border-gray-200 text-gray-900">
                       <SelectValue placeholder="Select experience level" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border-gray-200">
                       <SelectItem value="fresher">Fresher</SelectItem>
-                      <SelectItem value="experienced">Experienced (1 – 2 yrs)</SelectItem>
-                      <SelectItem value="expert">Expert (3 – 5 years)</SelectItem>
-                      <SelectItem value="professional">Professional (5+ years)</SelectItem>
+                      <SelectItem value="experienced">
+                        Experienced (1 – 2 yrs)
+                      </SelectItem>
+                      <SelectItem value="expert">
+                        Expert (3 – 5 years)
+                      </SelectItem>
+                      <SelectItem value="professional">
+                        Professional (5+ years)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.experience && <p className="text-[var(--himalaya-red)] text-sm mt-1">{errors.experience.message}</p>}
+                  {errors.experience && (
+                    <p className="text-[var(--himalaya-red)] text-sm mt-1">
+                      {errors.experience.message}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <Label htmlFor="resume" className="text-gray-700">Attach Resume</Label>
+                  <Label htmlFor="resume" className="text-gray-700">
+                    Attach Resume
+                  </Label>
                   <Input
                     id="resume"
                     type="file"
                     accept=".pdf,.doc,.docx"
-                    {...register('resume')}
+                    {...register("resume")}
                     className="mt-2 bg-white border-gray-200 text-gray-900 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-[var(--himalaya-red)]/10 file:text-[var(--himalaya-red)] hover:file:bg-[var(--himalaya-red)]/20"
                   />
-                  <p className="text-xs text-[var(--himalaya-smoke)] mt-1">PDF, DOC or DOCX (optional)</p>
+                  <p className="text-xs text-[var(--himalaya-smoke)] mt-1">
+                    PDF, DOC or DOCX (optional)
+                  </p>
                 </div>
 
                 <div>
-                  <Label htmlFor="coverLetter" className="text-gray-700">Cover Letter (Optional)</Label>
+                  <Label htmlFor="coverLetter" className="text-gray-700">
+                    Cover Letter (Optional)
+                  </Label>
                   <Textarea
                     id="coverLetter"
-                    {...register('coverLetter')}
+                    {...register("coverLetter")}
                     className="mt-2 bg-white border-gray-200 text-gray-900 min-h-[150px]"
                     placeholder="Tell us why you'd be a great fit..."
                   />
-                  {errors.coverLetter && <p className="text-[var(--himalaya-red)] text-sm mt-1">{errors.coverLetter.message}</p>}
+                  {errors.coverLetter && (
+                    <p className="text-[var(--himalaya-red)] text-sm mt-1">
+                      {errors.coverLetter.message}
+                    </p>
+                  )}
                 </div>
 
                 {submitError && (
-                  <p className="text-[var(--himalaya-red)] text-sm text-center">{submitError}</p>
+                  <p className="text-[var(--himalaya-red)] text-sm text-center">
+                    {submitError}
+                  </p>
                 )}
-                <Button type="submit" size="lg" disabled={isSubmitting} className="w-full bg-[var(--himalaya-red)] hover:bg-[var(--himalaya-red)]/90 text-white disabled:opacity-60">
-                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={isSubmitting}
+                  className="w-full bg-[var(--himalaya-red)] hover:bg-[var(--himalaya-red)]/90 text-white disabled:opacity-60"
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Application"}
                 </Button>
               </motion.form>
             ) : (
@@ -421,7 +509,8 @@ export default function Career() {
                   Application Submitted!
                 </h3>
                 <p className="text-[var(--himalaya-smoke)]">
-                  Thank you for your interest. We'll review your application and get back to you soon.
+                  Thank you for your interest. We'll review your application and
+                  get back to you soon.
                 </p>
               </motion.div>
             )}

@@ -8,7 +8,7 @@ export interface Product {
   image: string;
   images?: string[];
   datasheet?: string;
-  specs: string;
+  specs: { [key: string]: string };
   applications: string[];
   installation?: string[];
   description: string;
