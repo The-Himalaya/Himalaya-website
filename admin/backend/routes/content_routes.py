@@ -1,7 +1,6 @@
 import json
 import os
 import re
-import shutil
 import uuid
 from typing import List, Optional
 
@@ -19,21 +18,49 @@ from models import (
 
 _UPLOAD_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "static", "uploads")
 
+_CONTENT_TYPES = {
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+    ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml",
+    ".pdf": "application/pdf",
+}
+
+
+def _upload_to_firebase(content: bytes, path: str, ext: str) -> str | None:
+    try:
+        from firebase_admin import storage as fb_storage
+        bucket = fb_storage.bucket()
+        blob = bucket.blob(path)
+        blob.upload_from_string(content, content_type=_CONTENT_TYPES.get(ext, "application/octet-stream"))
+        blob.make_public()
+        return blob.public_url
+    except Exception as e:
+        import logging
+        logging.warning(f"[Storage] Firebase upload failed: {e}")
+        return None
+
 
 async def _save_files(files: Optional[List[UploadFile]], subfolder: str) -> List[str]:
-    """Save uploaded files to static/uploads/{subfolder}/ and return their URL paths."""
+    """Upload files to Firebase Storage and return their public URLs."""
     if not files:
         return []
-    target = os.path.join(_UPLOAD_BASE, subfolder)
-    os.makedirs(target, exist_ok=True)
     paths = []
     for f in files:
         if not f or not f.filename:
             continue
         ext = os.path.splitext(f.filename)[1].lower()
         filename = f"{uuid.uuid4().hex}{ext}"
+        content = await f.read()
+
+        url = _upload_to_firebase(content, f"uploads/{subfolder}/{filename}", ext)
+        if url:
+            paths.append(url)
+            continue
+
+        # Fallback: save locally if Firebase Storage is not configured
+        target = os.path.join(_UPLOAD_BASE, subfolder)
+        os.makedirs(target, exist_ok=True)
         with open(os.path.join(target, filename), "wb") as out:
-            shutil.copyfileobj(f.file, out)
+            out.write(content)
         paths.append(f"/admin/static/uploads/{subfolder}/{filename}")
     return paths
 

@@ -23,5 +23,8 @@ class Settings(BaseSettings):
     FIREBASE_AUTH_DOMAIN: str = os.getenv("FIREBASE_AUTH_DOMAIN", "")
     FIREBASE_PROJECT_ID: str = os.getenv("FIREBASE_PROJECT_ID", "")
 
+    # Firebase Storage bucket for persistent image uploads (e.g. your-project.appspot.com)
+    FIREBASE_STORAGE_BUCKET: str = os.getenv("FIREBASE_STORAGE_BUCKET", "")
+
 
 settings = Settings()

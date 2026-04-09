@@ -26,9 +26,12 @@ def init_firebase() -> None:
         "FIREBASE_SERVICE_ACCOUNT_PATH",
         os.path.join(os.path.dirname(__file__), "serviceAccountKey.json"),
     )
+    bucket = os.environ.get("FIREBASE_STORAGE_BUCKET", "")
+    options = {"storageBucket": bucket} if bucket else {}
+
     if os.path.exists(sa_path):
         cred = credentials.Certificate(sa_path)
-        firebase_admin.initialize_app(cred)
+        firebase_admin.initialize_app(cred, options)
         return
 
     # 2. Fall back to inline JSON string
@@ -36,7 +39,7 @@ def init_firebase() -> None:
     if sa_json:
         try:
             cred = credentials.Certificate(json.loads(sa_json))
-            firebase_admin.initialize_app(cred)
+            firebase_admin.initialize_app(cred, options)
             return
         except json.JSONDecodeError as e:
             raise RuntimeError(

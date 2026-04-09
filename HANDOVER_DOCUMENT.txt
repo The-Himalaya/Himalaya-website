@@ -1,0 +1,581 @@
+================================================================================
+                    THE HIMALAYA INFRASTRUCTURE WEBSITE
+                         PROJECT HANDOVER DOCUMENT
+================================================================================
+
+Project:        The Himalaya - Infrastructure Products Website
+Domain:         https://www.thehimalaya.co.in
+Prepared:       April 2026
+Repository:     c:\Himalaya_website
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+The Himalaya is a full-stack website for an infrastructure products manufacturer
+(FRP/GRP manhole covers, RCC products). It consists of:
+
+  - A public-facing marketing website (Next.js on Vercel)
+  - A password-protected admin panel (FastAPI on Render)
+  - A public REST API served by the FastAPI backend
+
+The frontend fetches all dynamic content (products, blog, careers, testimonials)
+from the backend API at runtime. The admin panel is used to manage that content.
+
+================================================================================
+2. HIGH-LEVEL ARCHITECTURE
+================================================================================
+
+  [Browser / Public User]
+         |
+         v
+  [Vercel - Next.js Frontend]   <-- thehimalaya.co.in
+         |
+         | /api/* rewrites (Next.js rewrites proxy)
+         v
+  [Render - FastAPI Backend]    <-- Internal API URL (env var)
+         |
+         |-- /api/*             Public JSON API (no auth)
+         |-- /admin/*           Admin panel (IP + Firebase auth)
+         v
+  [SQLite Database]             himalaya_admin.db (on Render disk)
+
+  [Firebase]
+    - Authentication (Google sign-in for admin users)
+    - Cloud Storage (for uploaded product/blog images)
+
+================================================================================
+3. TECHNOLOGY STACK
+================================================================================
+
+FRONTEND
+--------
+  Language:         TypeScript
+  Framework:        Next.js 15 (App Router)
+  UI Library:       React 19
+  Styling:          Tailwind CSS v4 (PostCSS plugin, no config file needed)
+  CSS Theme:        CSS variables in globals.css (@theme block)
+  Component Lib:    shadcn/ui (built on Radix UI primitives)
+  Animations:       Motion v12 (formerly Framer Motion)
+  3D Rendering:     Three.js + @react-three/fiber + @react-three/drei
+  Form Handling:    React Hook Form v7 + Zod v4 (validation)
+  Icons:            Lucide React
+  Analytics:        Google Analytics 4 (react-ga4)
+  Firebase Client:  firebase v12 (for any client-side auth flows)
+  Fonts:            Bebas Neue (headlines), Oswald (fallback), DM Sans (body)
+  Carousel:         Embla Carousel
+  Toast/Alerts:     Sonner
+  Date Handling:    date-fns
+
+BACKEND
+-------
+  Language:         Python 3.11+
+  Framework:        FastAPI 0.115.0
+  Server:           Uvicorn (ASGI)
+  ORM:              SQLAlchemy 2.0
+  Database:         SQLite (file: himalaya_admin.db)
+  Templating:       Jinja2 (admin panel HTML)
+  Auth:             Firebase Admin SDK v6 (session cookies, 5-day expiry)
+  File Uploads:     python-multipart + aiofiles + Pillow (image processing)
+  Config:           pydantic-settings + python-dotenv
+  Image Storage:    Firebase Cloud Storage + local /static/uploads/
+
+DEPLOYMENT
+----------
+  Frontend:         Vercel (auto-deploy from main branch)
+  Backend:          Render (Web Service, free tier)
+  Domain:           thehimalaya.co.in (Vercel custom domain)
+
+================================================================================
+4. REPOSITORY STRUCTURE
+================================================================================
+
+Himalaya_website/
+|
+|-- web/                        Next.js frontend application
+|   |-- src/
+|   |   |-- app/                Pages (App Router)
+|   |   |   |-- page.tsx            Home
+|   |   |   |-- about/              About Us
+|   |   |   |-- products/           Product listing + category filter
+|   |   |   |-- products/[category] Category-specific product page
+|   |   |   |-- product/[slug]      Individual product detail page
+|   |   |   |-- blog/               Blog listing
+|   |   |   |-- blog/[slug]         Blog post detail
+|   |   |   |-- career/             Job openings + application form
+|   |   |   |-- contact/            Contact form + map
+|   |   |   |-- bulk-order/         Multi-step bulk order form
+|   |   |   |-- layout.tsx          Root layout (Header, Footer, globals)
+|   |   |   |-- globals.css         CSS theme variables + base styles
+|   |   |   `-- not-found.tsx       404 page
+|   |   |
+|   |   |-- components/
+|   |   |   |-- layout/             Header.tsx, Footer.tsx
+|   |   |   |-- global/             WhatsAppButton, CookieConsent,
+|   |   |   |                       RequestQuoteModal, ScrollToTop,
+|   |   |   |                       PageViewTracker
+|   |   |   |-- shared/             ProductCard, CategoryCard, CertBadge,
+|   |   |   |                       StatCounter, ThreeDViewer,
+|   |   |   |                       ClientLogoMarquee, ProcessStep,
+|   |   |   |                       skeletons.tsx
+|   |   |   `-- ui/                 46 shadcn/Radix UI components
+|   |   |
+|   |   `-- lib/
+|   |       |-- api.ts              All data-fetching functions
+|   |       |-- types.ts            TypeScript interfaces
+|   |       |-- mockData.ts         Static/fallback data
+|   |       |-- firebase.ts         Firebase client setup
+|   |       |-- analytics.ts        Google Analytics helper
+|   |       `-- siteSettings.ts     Site-wide config constants
+|   |
+|   |-- public/                 Static assets (images, verification files)
+|   |-- next.config.ts          Next.js config (rewrites, image domains)
+|   |-- tsconfig.json           TypeScript config
+|   `-- package.json            Frontend dependencies
+|
+|-- admin/
+|   `-- backend/                FastAPI backend + admin panel
+|       |-- main.py             App entry point, CORS, middleware, routing
+|       |-- models.py           SQLAlchemy ORM models (11 tables)
+|       |-- database.py         Database engine setup
+|       |-- auth.py             Firebase session cookie auth
+|       |-- middleware.py       IP restriction for /admin routes
+|       |-- config.py           Settings (pydantic-settings)
+|       |-- firebase_init.py    Firebase Admin SDK initialization
+|       |-- seed_data.py        Initial data seeding
+|       |-- routes/
+|       |   |-- public_api.py       Public JSON endpoints (no auth)
+|       |   |-- auth_routes.py      Login / logout
+|       |   |-- dashboard_routes.py Stats overview
+|       |   |-- product_routes.py   Product CRUD
+|       |   |-- category_routes.py  Category CRUD
+|       |   |-- blog_routes.py      Blog CRUD
+|       |   |-- content_routes.py   Projects, jobs, testimonials CRUD
+|       |   `-- certificate_routes  Certifications CRUD
+|       |-- templates/          Jinja2 HTML templates (admin UI)
+|       |-- static/             Admin CSS/JS assets + uploaded images
+|       |-- himalaya_admin.db   SQLite database file
+|       `-- requirements.txt    Python dependencies
+|
+|-- assets/                     Brand assets (logos, hero images)
+|-- cors.json                   Firebase Storage CORS config
+`-- .env.example                Environment variable template
+
+================================================================================
+5. FRONTEND DEPENDENCIES (web/package.json)
+================================================================================
+
+PRODUCTION DEPENDENCIES
+-----------------------
+  next                    ^15.1.0         Core framework
+  react                   ^19.0.0         UI library
+  react-dom               ^19.0.0         DOM renderer
+  typescript              ^5.7.3          Language
+  motion                  12.23.24        Animations (Framer Motion successor)
+  three                   ^0.169.0        3D engine
+  @react-three/fiber      ^9.5.0          React renderer for Three.js
+  @react-three/drei       ^10.7.7         Three.js helpers
+  lucide-react            0.487.0         Icon library
+  react-hook-form         7.55.0          Form state management
+  @hookform/resolvers     ^5.2.2          Zod integration for RHF
+  zod                     ^4.3.6          Schema validation
+  firebase                ^12.11.0        Firebase client SDK
+  react-ga4               ^2.1.0          Google Analytics 4
+  next-themes             0.4.6           Dark/light mode
+  embla-carousel-react    8.6.0           Carousel component
+  react-day-picker        ^9.14.0         Date picker
+  react-responsive-masonry 2.7.1          Masonry grid layout
+  recharts                2.15.2          Chart library
+  sonner                  2.0.3           Toast notifications
+  date-fns                3.6.0           Date utilities
+  clsx                    2.1.1           Conditional class names
+  tailwind-merge          3.2.0           Tailwind class merging
+  class-variance-authority 0.7.1          Component variant utility
+  cmdk                    1.1.1           Command menu
+  vaul                    1.1.2           Drawer component
+  input-otp               1.4.2           OTP input
+  react-resizable-panels  2.1.7           Resizable panel layout
+  tw-animate-css          1.3.8           Tailwind animation utilities
+
+  @radix-ui/react-*       (26 packages)   Headless UI primitives:
+    accordion, alert-dialog, aspect-ratio, avatar, checkbox,
+    collapsible, context-menu, dialog, dropdown-menu, hover-card,
+    label, menubar, navigation-menu, popover, progress, radio-group,
+    scroll-area, select, separator, slider, slot, switch, tabs,
+    toggle, toggle-group, tooltip
+
+DEV DEPENDENCIES
+----------------
+  @tailwindcss/postcss    ^4.1.0          Tailwind PostCSS plugin
+  @types/node             ^22.10.0        Node.js types
+  @types/react            ^19.0.0         React types
+  @types/react-dom        ^19.0.0         React DOM types
+  @types/three            ^0.169.0        Three.js types
+  tailwindcss             ^4.1.0          Tailwind core
+
+================================================================================
+6. BACKEND DEPENDENCIES (admin/backend/requirements.txt)
+================================================================================
+
+  fastapi==0.115.0            Web framework
+  uvicorn[standard]==0.30.6   ASGI server
+  sqlalchemy==2.0.35          ORM + database toolkit
+  python-multipart==0.0.9     File upload support
+  jinja2==3.1.4               HTML templating (admin panel)
+  aiofiles==24.1.0            Async file operations
+  pydantic==2.9.2             Data validation
+  pydantic-settings==2.5.2    Settings management
+  python-dotenv==1.0.1        .env file loading
+  Pillow==10.4.0              Image processing
+  firebase-admin==6.6.0       Firebase Admin SDK (auth + storage)
+
+================================================================================
+7. ENVIRONMENT VARIABLES
+================================================================================
+
+FRONTEND (web/.env.local on Vercel)
+------------------------------------
+  NEXT_PUBLIC_GA_MEASUREMENT_ID   Google Analytics 4 measurement ID
+                                  Example: G-XXXXXXXXXX
+
+  INTERNAL_API_URL                Full URL of the Render backend
+                                  Example: https://your-app.onrender.com
+                                  NOTE: NOT prefixed NEXT_PUBLIC_ because it is
+                                  only used server-side in next.config.ts rewrites
+                                  and server components.
+
+BACKEND (admin/backend/.env on Render)
+---------------------------------------
+  ADMIN_EMAILS                    Comma-separated list of allowed admin emails
+                                  Example: admin@thehimalaya.com,cto@thehimalaya.com
+
+  ALLOWED_ADMIN_IPS               Comma-separated IPs allowed to access /admin
+                                  Use "*" to allow all (development)
+                                  Example: 49.36.xxx.xxx,103.xxx.xxx.xxx
+
+  FRONTEND_URL                    Frontend origin for CORS
+                                  Example: https://www.thehimalaya.co.in
+
+  FIREBASE_API_KEY                Firebase web API key
+  FIREBASE_AUTH_DOMAIN            Firebase auth domain (project.firebaseapp.com)
+  FIREBASE_PROJECT_ID             Firebase project ID
+
+  FIREBASE_SERVICE_ACCOUNT_PATH   Path to service account JSON file (Option A)
+                                  Example: serviceAccountKey.json
+  FIREBASE_SERVICE_ACCOUNT_JSON   Inline service account JSON string (Option B)
+                                  Used when file cannot be placed on server
+
+================================================================================
+8. DATABASE SCHEMA (SQLite - SQLAlchemy ORM)
+================================================================================
+
+  Table: categories
+    id, name, slug (unique), description, image, advantages (JSON array),
+    product_count
+
+  Table: products
+    id, name, slug (unique), category_id (FK), load_class, image,
+    images (JSON array), datasheet (URL), specs (JSON), applications (JSON),
+    installation (text), description, standard, featured (bool)
+
+  Table: blog_posts
+    id, title, slug (unique), excerpt, content (HTML/Markdown), category,
+    author, date, image, images (JSON array), videos (JSON array),
+    featured (bool), published (bool), created_at
+
+  Table: job_openings
+    id, title, department, location, job_type, experience,
+    description, requirements (JSON array)
+
+  Table: project_showcases
+    id, name, client, location, year, products_used, quantity,
+    image, images (JSON array), videos (JSON array), description
+
+  Table: testimonials
+    id, name, position, company, content, rating (int), is_active (bool)
+
+  Table: contact_submissions
+    id, name, email, phone, company, message, status, created_at
+
+  Table: bulk_order_inquiries
+    id, product_name, quantity, name, email, phone, company,
+    state, city, pincode, message, status, created_at
+
+  Table: site_settings
+    id, key (unique), value, description
+
+  Table: certificates
+    id, name, issuer, issue_date, expiry_date, certificate_number,
+    description, image, is_active (bool)
+
+  Table: admins
+    id, username, email, hashed_password, is_active, created_at
+
+NOTE: SQLite on Render free tier uses ephemeral disk. The database is reset
+on each redeploy unless Render persistent disk is enabled. Consider migrating
+to PostgreSQL (Render Postgres free tier) for production persistence.
+
+================================================================================
+9. PUBLIC API ENDPOINTS
+================================================================================
+
+All endpoints are prefixed with /api (no authentication required):
+
+  GET  /api/categories                    List all categories
+  GET  /api/categories/{slug}             Get single category by slug
+  GET  /api/categories/{slug}/products    Get all products in a category
+  GET  /api/products                      List all products
+  GET  /api/products/featured             List featured products only
+  GET  /api/products/{slug}               Get single product by slug
+  GET  /api/blog-posts                    List all published blog posts
+  GET  /api/blog-posts/{slug}             Get single blog post by slug
+  GET  /api/job-openings                  List all job openings
+  GET  /api/projects                      List all project showcases
+  GET  /api/testimonials                  List all active testimonials
+
+API Docs (Swagger UI): https://your-render-url.onrender.com/admin/api/docs
+
+================================================================================
+10. ADMIN PANEL ACCESS
+================================================================================
+
+URL:    https://your-render-url.onrender.com/admin
+        (NOT thehimalaya.co.in/admin - that is the Vercel frontend)
+
+Login:  Firebase Google Sign-In
+        Only emails listed in ADMIN_EMAILS env var are allowed access
+
+IP:     Only IPs listed in ALLOWED_ADMIN_IPS can reach /admin routes
+        Set to "*" to allow all, or comma-separate specific IPs
+
+Sections:
+  /admin/login          Sign in with Google
+  /admin/dashboard      Stats overview
+  /admin/products       Add / edit / delete products
+  /admin/categories     Add / edit / delete categories
+  /admin/blog           Add / edit / delete blog posts
+  /admin/projects       Add / edit / delete project showcases
+  /admin/jobs           Add / edit / delete job openings
+  /admin/testimonials   Add / edit / delete testimonials
+  /admin/certificates   Add / edit / delete certifications
+  /admin/inquiries      View contact & bulk order form submissions
+
+================================================================================
+11. HOW API DATA FLOWS (FRONTEND)
+================================================================================
+
+All API calls are in:  web/src/lib/api.ts
+
+Key pattern:
+  - Server-side (SSR/RSC): uses INTERNAL_API_URL directly (absolute URL)
+  - Client-side (useEffect): uses relative URL "" which goes through the
+    Next.js rewrite proxy defined in next.config.ts
+  - The rewrite maps /api/* → INTERNAL_API_URL/api/*
+
+Client components (pages with 'use client') use useEffect to fetch data.
+All fetch functions return empty arrays [] or null on failure (no crashes).
+Loading states use purpose-built skeleton components from:
+  web/src/components/shared/skeletons.tsx
+
+Skeleton components available:
+  CategoryCardSkeleton    - For category cards
+  ProductCardSkeleton     - For product cards
+  ProjectCardSkeleton     - For project showcase cards
+  BlogPostCardSkeleton    - For blog post cards
+  FeaturedBlogPostSkeleton- For the featured blog post section
+  JobOpeningSkeleton      - For job opening accordion rows
+  ProductDetailSkeleton   - For the product detail page
+  CategoryPageSkeleton    - For the category products page
+
+================================================================================
+12. FRONTEND PAGES SUMMARY
+================================================================================
+
+  /               Home - Hero, animated stats, categories, featured products,
+                        process steps, projects, testimonials, certifications,
+                        client logos, CTA
+
+  /about          About - Company history, team, values, manufacturing process,
+                          certifications, client base
+
+  /products       Products - All categories overview + featured products grid
+
+  /products/[cat] Category - Hero image, advantages strip, filtered product grid
+                             with load class filter dropdown
+
+  /product/[slug] Product Detail - Image gallery, 3D viewer, specs table,
+                                   applications, installation guide, datasheet
+                                   download, related products
+
+  /blog           Blog - Featured post highlight, category filter tabs,
+                         paginated post grid
+
+  /blog/[slug]    Blog Post - Full article with author, date, images
+
+  /career         Career - Job openings accordion, application modal with form
+
+  /contact        Contact - Contact form, Google Maps embed, office details,
+                            WhatsApp link
+
+  /bulk-order     Bulk Order - Multi-step form (product selection, quantity,
+                               contact info, delivery details)
+
+================================================================================
+13. BRAND & DESIGN SYSTEM
+================================================================================
+
+Colors (CSS variables in globals.css):
+  --himalaya-black:   #011a2e   (dark navy, text)
+  --himalaya-navy:    #014871   (primary brand blue)
+  --himalaya-red:     #014871   (accent - same as navy in current theme)
+  --himalaya-gold:    #D7EDE2   (mint green accent)
+  --himalaya-ice:     #9ecfba   (secondary green accent)
+  --himalaya-white:   #f0f9f6   (off-white background)
+  --himalaya-smoke:   #64748b   (muted text / slate-500)
+  --himalaya-card:    #ffffff   (card backgrounds)
+
+Fonts:
+  Bebas Neue      Display / Headlines (uppercase, bold)
+  Oswald          Fallback display font
+  DM Sans         Body text
+
+Gradients:
+  --himalaya-gradient:      135deg from navy to mint
+  --himalaya-gradient-dark: 135deg from near-black to navy
+
+Typography scale:
+  h1: 3.5rem | h2: 2.5rem | h3: 1.75rem
+
+================================================================================
+14. GOOGLE ANALYTICS SETUP
+================================================================================
+
+File:   web/src/lib/analytics.ts
+Comp:   web/src/components/global/PageViewTracker.tsx
+Env:    NEXT_PUBLIC_GA_MEASUREMENT_ID in .env.local
+
+The PageViewTracker component is mounted in layout.tsx and fires a page_view
+event on every route change.
+
+================================================================================
+15. GOOGLE SEARCH CONSOLE VERIFICATION
+================================================================================
+
+Verification file: web/public/googlebec1b2c15ede6001.html
+Accessible at:     https://www.thehimalaya.co.in/googlebec1b2c15ede6001.html
+
+================================================================================
+16. FIREBASE SETUP
+================================================================================
+
+Firebase is used for:
+  1. Admin authentication (Google Sign-In via Firebase Auth)
+  2. Image storage (Firebase Cloud Storage for product/blog images)
+
+Admin SDK (backend):
+  - Initialized in firebase_init.py on startup
+  - Credentials from FIREBASE_SERVICE_ACCOUNT_PATH or FIREBASE_SERVICE_ACCOUNT_JSON
+  - Used to verify tokens and issue session cookies (5-day expiry)
+  - Cookies can be revoked server-side on logout
+
+Client SDK (frontend):
+  - Initialized in web/src/lib/firebase.ts
+  - Used for Google Sign-In popup flow on /admin/login page
+
+CORS for Firebase Storage:
+  - Configured via cors.json
+  - Apply with: gsutil cors set cors.json gs://your-bucket-name
+
+================================================================================
+17. LOCAL DEVELOPMENT SETUP
+================================================================================
+
+FRONTEND
+  cd web
+  npm install
+  cp .env.local.example .env.local     (fill in values)
+  npm run dev                           (http://localhost:3000)
+
+BACKEND
+  cd admin/backend
+  python -m venv venv
+  source venv/bin/activate             (Windows: venv\Scripts\activate)
+  pip install -r requirements.txt
+  cp .env.example .env                 (fill in values)
+  python main.py                       (http://localhost:8000)
+
+  Admin panel: http://localhost:8000/admin
+  API docs:    http://localhost:8000/admin/api/docs
+
+Note: For local development, set ALLOWED_ADMIN_IPS=* in backend .env.
+
+================================================================================
+18. DEPLOYMENT NOTES
+================================================================================
+
+VERCEL (Frontend)
+  - Connect GitHub repo to Vercel project
+  - Set environment variables in Vercel dashboard:
+      INTERNAL_API_URL   = https://your-render-app.onrender.com
+      NEXT_PUBLIC_GA_MEASUREMENT_ID = G-XXXXXXXXXX
+  - Build command:  cd web && npm run build
+  - Output dir:     web/.next
+  - Redeploy after changing INTERNAL_API_URL (rewrites are build-time)
+
+RENDER (Backend)
+  - Connect GitHub repo to Render Web Service
+  - Root directory: admin/backend
+  - Build command:  pip install -r requirements.txt
+  - Start command:  uvicorn main:app --host 0.0.0.0 --port $PORT
+  - Set environment variables (see Section 7)
+  - IMPORTANT: Free tier has ephemeral disk. SQLite DB is wiped on redeploy.
+               Either upgrade to paid Render disk, or migrate to PostgreSQL.
+
+================================================================================
+19. KNOWN LIMITATIONS & CONSIDERATIONS
+================================================================================
+
+1. SQLite on Render Free Tier
+   The database file (himalaya_admin.db) is on ephemeral disk. All data is
+   lost on each redeploy. Solution: enable Render persistent disk ($7/month)
+   or migrate to Render PostgreSQL (free tier available).
+
+2. Image Storage
+   Product and blog images are uploaded to Firebase Cloud Storage. The static/
+   uploads/ directory on Render is also ephemeral. Ensure all images go through
+   Firebase Storage for persistence.
+
+3. Admin IP Restriction
+   If ALLOWED_ADMIN_IPS is set to specific IPs, accessing admin from a new
+   IP requires updating the Render environment variable.
+
+4. CORS Configuration
+   Only the URL in FRONTEND_URL is allowed by the FastAPI CORS middleware.
+   Localhost:3000 and 3001 are always allowed for development.
+
+5. API Rate Limiting
+   No rate limiting is currently implemented on the public API.
+
+6. Session Expiry
+   Admin sessions expire after 5 days. Users will be redirected to login.
+
+================================================================================
+20. KEY FILES QUICK REFERENCE
+================================================================================
+
+  web/src/lib/api.ts              All frontend data fetching
+  web/src/lib/types.ts            TypeScript type definitions
+  web/src/lib/mockData.ts         Static data (certifications, clients)
+  web/src/app/globals.css         Brand colors, fonts, global styles
+  web/next.config.ts              API proxy rewrites, image domains
+  web/src/components/shared/skeletons.tsx   All loading skeleton UIs
+
+  admin/backend/main.py           Backend entry point
+  admin/backend/models.py         Database table definitions
+  admin/backend/routes/public_api.py   All public API endpoints
+  admin/backend/config.py         Environment variable settings
+  admin/backend/auth.py           Firebase session auth
+
+================================================================================
+                              END OF HANDOVER DOCUMENT
+================================================================================

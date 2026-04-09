@@ -9,7 +9,8 @@ class AdminIPRestrictionMiddleware(BaseHTTPMiddleware):
     """Restricts /admin/* routes to specific IP addresses."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        if request.url.path.startswith("/admin"):
+        # Static uploads (product/category images) are public — never IP-restrict them
+        if request.url.path.startswith("/admin") and not request.url.path.startswith("/admin/static"):
             allowed = settings.ALLOWED_ADMIN_IPS.strip()
 
             # "*" means allow all (dev mode)

@@ -89,8 +89,30 @@ def ensure_upload_dirs():
         os.makedirs(os.path.join(UPLOAD_DIR, sub), exist_ok=True)
 
 
+_CONTENT_TYPES = {
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+    ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml",
+    ".pdf": "application/pdf",
+}
+
+
+def _upload_to_firebase(content: bytes, path: str, ext: str) -> str | None:
+    """Upload bytes to Firebase Storage and return the public URL, or None on failure."""
+    try:
+        from firebase_admin import storage as fb_storage
+        bucket = fb_storage.bucket()
+        blob = bucket.blob(path)
+        blob.upload_from_string(content, content_type=_CONTENT_TYPES.get(ext, "application/octet-stream"))
+        blob.make_public()
+        return blob.public_url
+    except Exception as e:
+        import logging
+        logging.warning(f"[Storage] Firebase upload failed: {e}")
+        return None
+
+
 async def save_upload(file: UploadFile, subfolder: str, allowed_exts: set) -> str | None:
-    """Save an uploaded file and return its URL path, or None if invalid."""
+    """Upload a file to Firebase Storage and return its public URL, or None if invalid."""
     if not file or not file.filename:
         return None
 
@@ -98,14 +120,19 @@ async def save_upload(file: UploadFile, subfolder: str, allowed_exts: set) -> st
     if ext not in allowed_exts:
         return None
 
-    os.makedirs(os.path.join(UPLOAD_DIR, subfolder), exist_ok=True)
     unique_name = f"{uuid.uuid4().hex[:12]}{ext}"
-    dest = os.path.join(UPLOAD_DIR, subfolder, unique_name)
-
+    storage_path = f"uploads/{subfolder}/{unique_name}"
     content = await file.read()
+
+    url = _upload_to_firebase(content, storage_path, ext)
+    if url:
+        return url
+
+    # Fallback: save locally if Firebase Storage is not configured
+    os.makedirs(os.path.join(UPLOAD_DIR, subfolder), exist_ok=True)
+    dest = os.path.join(UPLOAD_DIR, subfolder, unique_name)
     with open(dest, "wb") as f:
         f.write(content)
-
     return f"/admin/static/uploads/{subfolder}/{unique_name}"
 
 
