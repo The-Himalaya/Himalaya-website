@@ -14,10 +14,6 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         destination: `${process.env.INTERNAL_API_URL || 'http://localhost:8000'}/api/:path*`,
       },
-      {
-        source: '/admin/static/:path*',
-        destination: `${process.env.INTERNAL_API_URL || 'http://localhost:8000'}/admin/static/:path*`,
-      },
     ];
   },
 };
