@@ -65,7 +65,7 @@ def _sync_product_to_firestore(prod: "Product") -> None:
             "images": prod.images if isinstance(prod.images, list) else [],
             "datasheet": prod.datasheet or "",
             "description": prod.description or "",
-            "specs": prod.specs if isinstance(prod.specs, dict) else {},
+            "specs": _parse_specs_str(prod.specs),
             "applications": prod.applications if isinstance(prod.applications, list) else [],
             "installation": prod.installation if isinstance(prod.installation, list) else [],
             "featured": bool(prod.featured),
@@ -87,6 +87,18 @@ def ensure_upload_dirs():
     """Create upload subdirectories if they don't exist."""
     for sub in ("images", "models"):
         os.makedirs(os.path.join(UPLOAD_DIR, sub), exist_ok=True)
+
+
+def _parse_specs_str(value) -> dict:
+    """Parse specs stored as JSON text in the DB into a dict for Firestore sync."""
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str) and value.strip():
+        try:
+            return json.loads(value)
+        except Exception:
+            pass
+    return {}
 
 
 _CONTENT_TYPES = {

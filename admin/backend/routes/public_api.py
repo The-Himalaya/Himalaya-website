@@ -1,236 +1,227 @@
 """
-Public JSON API endpoints — no auth required.
-Serves data from the database for the React frontend.
+Public JSON API endpoints — reads directly from Firestore.
+No authentication required. No SQLite / SQLAlchemy dependency.
+Render only handles admin writes; Firestore serves all public GET traffic.
 """
 
-import json
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-
-from database import get_db
-from models import (
-    Category, Product, BlogPost, JobOpening,
-    ProjectShowcase, Testimonial,
-)
+import logging
+from fastapi import APIRouter
 
 router = APIRouter()
 
 
-def _parse_specs(value: str) -> dict:
-    if not value or not isinstance(value, str) or not value.strip():
-        return {}
-    try:
-        return json.loads(value)
-    except Exception:
-        return {}
+def _fs():
+    from firebase_admin import firestore as fb_firestore
+    return fb_firestore.client()
 
 
-def product_to_dict(p: Product) -> dict:
-    return {
-        "id": str(p.id),
-        "name": p.name,
-        "slug": p.slug,
-        "category": p.category_name,
-        "categorySlug": p.category_slug,
-        "loadClass": p.load_class or "",
-        "standard": p.standard or "",
-        "image": p.image or "",
-        "images": p.images if isinstance(p.images, list) else [],
-        "datasheet": p.datasheet or "",
-        "description": p.description or "",
-        "specs": _parse_specs(p.specs),
-        "applications": p.applications if isinstance(p.applications, list) else [],
-        "installation": p.installation if isinstance(p.installation, list) else [],
-        "featured": bool(p.featured),
-    }
-
-
-def category_to_dict(c: Category) -> dict:
-    return {
-        "id": str(c.id),
-        "name": c.name,
-        "slug": c.slug,
-        "description": c.description or "",
-        "productCount": c.product_count or 0,
-        "image": c.image or "",
-        "advantages": c.advantages if isinstance(c.advantages, list) else [],
-    }
+def _format_date(val) -> str:
+    """Convert a Firestore Timestamp or datetime to YYYY-MM-DD string."""
+    if val is None:
+        return ""
+    if hasattr(val, "strftime"):
+        return val.strftime("%Y-%m-%d")
+    return str(val)[:10]
 
 
 # ── Categories ──────────────────────────────────────────
 
 @router.get("/categories")
-async def api_categories(db: Session = Depends(get_db)):
-    cats = db.query(Category).order_by(Category.id).all()
-    return [category_to_dict(c) for c in cats]
+def api_categories():
+    try:
+        docs = _fs().collection("categories").get()
+        result = [doc.to_dict() for doc in docs]
+        return sorted(result, key=lambda x: x.get("id", ""))
+    except Exception as e:
+        logging.warning(f"[api] /categories failed: {e}")
+        return []
 
 
 @router.get("/categories/{slug}")
-async def api_category_by_slug(slug: str, db: Session = Depends(get_db)):
-    cat = db.query(Category).filter(Category.slug == slug).first()
-    if not cat:
+def api_category_by_slug(slug: str):
+    try:
+        docs = _fs().collection("categories").where("slug", "==", slug).limit(1).get()
+        return docs[0].to_dict() if docs else None
+    except Exception as e:
+        logging.warning(f"[api] /categories/{slug} failed: {e}")
         return None
-    return category_to_dict(cat)
 
 
 @router.get("/categories/{slug}/products")
-async def api_category_products(slug: str, db: Session = Depends(get_db)):
-    products = db.query(Product).filter(Product.category_slug == slug).order_by(Product.name).all()
-    return [product_to_dict(p) for p in products]
+def api_category_products(slug: str):
+    try:
+        docs = _fs().collection("products").where("category_slug", "==", slug).get()
+        result = [doc.to_dict() for doc in docs]
+        return sorted(result, key=lambda x: x.get("name", ""))
+    except Exception as e:
+        logging.warning(f"[api] /categories/{slug}/products failed: {e}")
+        return []
 
 
 # ── Products ────────────────────────────────────────────
+# NOTE: /products/featured must be defined BEFORE /products/{slug}
 
 @router.get("/products")
-async def api_products(db: Session = Depends(get_db)):
-    products = db.query(Product).order_by(Product.name).all()
-    return [product_to_dict(p) for p in products]
+def api_products():
+    try:
+        docs = _fs().collection("products").get()
+        result = [doc.to_dict() for doc in docs]
+        return sorted(result, key=lambda x: x.get("name", ""))
+    except Exception as e:
+        logging.warning(f"[api] /products failed: {e}")
+        return []
 
 
 @router.get("/products/featured")
-async def api_featured_products(db: Session = Depends(get_db)):
-    products = db.query(Product).filter(Product.featured == True).order_by(Product.name).all()
-    return [product_to_dict(p) for p in products]
+def api_featured_products():
+    try:
+        docs = _fs().collection("products").where("featured", "==", True).get()
+        result = [doc.to_dict() for doc in docs]
+        return sorted(result, key=lambda x: x.get("name", ""))
+    except Exception as e:
+        logging.warning(f"[api] /products/featured failed: {e}")
+        return []
 
 
 @router.get("/products/{slug}")
-async def api_product_by_slug(slug: str, db: Session = Depends(get_db)):
-    p = db.query(Product).filter(Product.slug == slug).first()
-    if not p:
+def api_product_by_slug(slug: str):
+    try:
+        docs = _fs().collection("products").where("slug", "==", slug).limit(1).get()
+        return docs[0].to_dict() if docs else None
+    except Exception as e:
+        logging.warning(f"[api] /products/{slug} failed: {e}")
         return None
-    return product_to_dict(p)
 
 
 # ── Blog ────────────────────────────────────────────────
 
 @router.get("/blog-posts")
-async def api_blog_posts(db: Session = Depends(get_db)):
-    posts = db.query(BlogPost).filter(BlogPost.published == True).order_by(BlogPost.created_at.desc()).all()
-    return [
-        {
-            "id": str(p.id),
-            "title": p.title,
-            "slug": p.slug,
-            "excerpt": p.excerpt or "",
-            "content": p.content or "",
-            "category": p.category or "",
-            "author": p.author or "",
-            "date": p.created_at.strftime("%Y-%m-%d") if p.created_at else "",
-            "image": p.image or "",
-            "images": p.images if isinstance(p.images, list) else [],
-            "featured": bool(p.featured),
-        }
-        for p in posts
-    ]
+def api_blog_posts():
+    try:
+        docs = _fs().collection("blog_posts").where("published", "==", True).get()
+        result = []
+        for doc in docs:
+            d = doc.to_dict()
+            d["date"] = _format_date(d.get("updated_at") or d.get("created_at"))
+            # Remove raw timestamp objects so JSON serialisation doesn't fail
+            d.pop("updated_at", None)
+            d.pop("created_at", None)
+            result.append(d)
+        # Most-recent first
+        return sorted(result, key=lambda x: x.get("date", ""), reverse=True)
+    except Exception as e:
+        logging.warning(f"[api] /blog-posts failed: {e}")
+        return []
 
 
 @router.get("/blog-posts/{slug}")
-async def api_blog_post_by_slug(slug: str, db: Session = Depends(get_db)):
-    p = db.query(BlogPost).filter(BlogPost.slug == slug, BlogPost.published == True).first()
-    if not p:
+def api_blog_post_by_slug(slug: str):
+    try:
+        docs = (
+            _fs().collection("blog_posts")
+            .where("slug", "==", slug)
+            .where("published", "==", True)
+            .limit(1)
+            .get()
+        )
+        if not docs:
+            return None
+        d = docs[0].to_dict()
+        d["date"] = _format_date(d.get("updated_at") or d.get("created_at"))
+        d.pop("updated_at", None)
+        d.pop("created_at", None)
+        return d
+    except Exception as e:
+        logging.warning(f"[api] /blog-posts/{slug} failed: {e}")
         return None
-    return {
-        "id": str(p.id),
-        "title": p.title,
-        "slug": p.slug,
-        "excerpt": p.excerpt or "",
-        "content": p.content or "",
-        "category": p.category or "",
-        "author": p.author or "",
-        "date": p.created_at.strftime("%Y-%m-%d") if p.created_at else "",
-        "image": p.image or "",
-        "images": p.images if isinstance(p.images, list) else [],
-        "featured": bool(p.featured),
-    }
 
 
 # ── Jobs ────────────────────────────────────────────────
 
 @router.get("/job-openings")
-async def api_job_openings(db: Session = Depends(get_db)):
-    jobs = db.query(JobOpening).filter(JobOpening.is_active == True).order_by(JobOpening.created_at.desc()).all()
-    return [
-        {
-            "id": str(j.id),
-            "title": j.title,
-            "department": j.department or "",
-            "location": j.location or "",
-            "type": j.job_type or "Full-time",
-            "experience": j.experience or "",
-            "description": j.description or "",
-            "requirements": j.requirements if isinstance(j.requirements, list) else [],
-        }
-        for j in jobs
-    ]
+def api_job_openings():
+    try:
+        col = _fs().collection("job_details").document("main").collection("openings")
+        docs = col.where("is_active", "==", True).get()
+        result = []
+        for doc in docs:
+            d = doc.to_dict()
+            # Frontend expects "type" key, Firestore stores "job_type"
+            d["type"] = d.get("job_type", "Full-time")
+            d.pop("updated_at", None)
+            result.append(d)
+        return result
+    except Exception as e:
+        logging.warning(f"[api] /job-openings failed: {e}")
+        return []
 
 
 # ── Projects ───────────────────────────────────────────
 
 @router.get("/projects")
-async def api_projects(db: Session = Depends(get_db)):
-    projs = db.query(ProjectShowcase).order_by(ProjectShowcase.year.desc()).all()
-    return [
-        {
-            "id": str(p.id),
-            "name": p.name,
-            "client": p.client or "",
-            "location": p.location or "",
-            "year": p.year or 0,
-            "products": p.products_used if isinstance(p.products_used, list) else [],
-            "quantity": p.quantity or "",
-            "image": p.image or "",
-            "images": p.images if isinstance(p.images, list) else [],
-            "videos": p.videos if isinstance(p.videos, list) else [],
-            "description": p.description or "",
-        }
-        for p in projs
-    ]
-
-
-# ── Site Settings ──────────────────────────────────────
-
-@router.get("/site-settings")
-async def api_site_settings():
+def api_projects():
     try:
-        from firebase_admin import firestore as fb_firestore
-        doc = fb_firestore.client().collection("site_settings").document("config").get()
-        if doc.exists:
-            return doc.to_dict()
-    except Exception:
-        pass
-    return {
-        "company_name": "The Himalaya",
-        "tagline": "Built to Last. Built for India.",
-        "phone": "+91 98765 43210",
-        "phone2": "",
-        "whatsapp": "+919876543210",
-        "email": "info@thehimalaya.co.in",
-        "address": "Industrial Area, Phase 2",
-        "city": "Ahmedabad",
-        "state": "Gujarat",
-        "pincode": "380001",
-        "country": "India",
-        "gst": "24AAAAA0000A1Z5",
-        "established_year": "2004",
-        "linkedin": "https://www.linkedin.com/company/himalaya-composites-precast-pvt-ltd/",
-        "facebook": "https://facebook.com",
-        "instagram": "https://www.instagram.com/thehimalaya_",
-        "map_embed_url": "",
-    }
+        docs = _fs().collection("projects").get()
+        result = []
+        for doc in docs:
+            d = doc.to_dict()
+            # Frontend expects "products" key, Firestore stores "products_used"
+            d["products"] = d.get("products_used", [])
+            d.pop("updated_at", None)
+            result.append(d)
+        # Most-recent year first
+        return sorted(result, key=lambda x: x.get("year", 0), reverse=True)
+    except Exception as e:
+        logging.warning(f"[api] /projects failed: {e}")
+        return []
 
 
 # ── Testimonials ───────────────────────────────────────
 
 @router.get("/testimonials")
-async def api_testimonials(db: Session = Depends(get_db)):
-    items = db.query(Testimonial).filter(Testimonial.is_active == True).order_by(Testimonial.created_at.desc()).all()
-    return [
-        {
-            "name": t.name,
-            "position": t.position or "",
-            "company": t.company or "",
-            "content": t.content or "",
-            "rating": t.rating or 5,
-        }
-        for t in items
-    ]
+def api_testimonials():
+    try:
+        docs = _fs().collection("testimonials").where("is_active", "==", True).get()
+        result = []
+        for doc in docs:
+            d = doc.to_dict()
+            d.pop("updated_at", None)
+            result.append(d)
+        return result
+    except Exception as e:
+        logging.warning(f"[api] /testimonials failed: {e}")
+        return []
+
+
+# ── Site Settings ──────────────────────────────────────
+
+_SETTINGS_DEFAULTS = {
+    "company_name": "The Himalaya",
+    "tagline": "Built to Last. Built for India.",
+    "phone": "+91 98765 43210",
+    "phone2": "",
+    "whatsapp": "+919876543210",
+    "email": "info@thehimalaya.co.in",
+    "address": "Industrial Area, Phase 2",
+    "city": "Ahmedabad",
+    "state": "Gujarat",
+    "pincode": "380001",
+    "country": "India",
+    "gst": "24AAAAA0000A1Z5",
+    "established_year": "2004",
+    "linkedin": "https://www.linkedin.com/company/himalaya-composites-precast-pvt-ltd/",
+    "facebook": "https://facebook.com",
+    "instagram": "https://www.instagram.com/thehimalaya_",
+    "map_embed_url": "",
+}
+
+
+@router.get("/site-settings")
+def api_site_settings():
+    try:
+        doc = _fs().collection("site_settings").document("config").get()
+        if doc.exists:
+            return {**_SETTINGS_DEFAULTS, **doc.to_dict()}
+    except Exception:
+        pass
+    return _SETTINGS_DEFAULTS

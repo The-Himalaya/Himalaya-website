@@ -30,7 +30,7 @@
         <td class="table-cell">
           <span class="badge {% if c.status == 'new' %}badge-green{% elif c.status == 'read' %}badge-blue{% else %}badge-gray{% endif %}">{{ c.status }}</span>
         </td>
-        <td class="table-cell text-xs text-himalaya-smoke whitespace-nowrap">{{ c.created_at.strftime('%b %d, %Y') if c.created_at else '' }}</td>
+        <td class="table-cell text-xs text-himalaya-smoke whitespace-nowrap">{{ c.created_at }}</td>
         <td class="table-cell text-right">
           <div class="flex items-center justify-end gap-1">
             {% if c.status == 'new' %}

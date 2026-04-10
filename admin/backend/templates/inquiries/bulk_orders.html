@@ -35,7 +35,7 @@
         <td class="table-cell">
           <span class="badge {% if o.status == 'new' %}badge-green{% elif o.status == 'contacted' %}badge-blue{% elif o.status == 'quoted' %}badge-yellow{% else %}badge-gray{% endif %}">{{ o.status }}</span>
         </td>
-        <td class="table-cell text-xs text-himalaya-smoke whitespace-nowrap">{{ o.created_at.strftime('%b %d, %Y') if o.created_at else '' }}</td>
+        <td class="table-cell text-xs text-himalaya-smoke whitespace-nowrap">{{ o.created_at }}</td>
         <td class="table-cell text-right">
           <div class="flex items-center justify-end gap-1 flex-wrap">
             {% for s in ['contacted', 'quoted', 'closed'] %}

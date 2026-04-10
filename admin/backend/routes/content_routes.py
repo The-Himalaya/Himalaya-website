@@ -413,6 +413,50 @@ async def new_project_form(request: Request, admin=Depends(admin_required)):
     })
 
 
+def _sync_project_to_firestore(project: "ProjectShowcase") -> None:
+    """Mirror a project to Firestore projects/{id}."""
+    import logging
+    try:
+        from firebase_admin import firestore as fb_firestore
+        _fs().collection("projects").document(str(project.id)).set({
+            "id": str(project.id),
+            "name": project.name,
+            "client": project.client or "",
+            "location": project.location or "",
+            "year": project.year or 0,
+            "products_used": project.products_used if isinstance(project.products_used, list) else [],
+            "quantity": project.quantity or "",
+            "image": project.image or "",
+            "images": project.images if isinstance(project.images, list) else [],
+            "videos": project.videos if isinstance(project.videos, list) else [],
+            "description": project.description or "",
+            "updated_at": fb_firestore.SERVER_TIMESTAMP,
+        }, merge=True)
+        logging.info(f"[Firestore] Synced project {project.id}")
+    except Exception as e:
+        logging.error(f"[Firestore] Failed to sync project {project.id}: {e}")
+
+
+def _sync_testimonial_to_firestore(t: "Testimonial") -> None:
+    """Mirror a testimonial to Firestore testimonials/{id}."""
+    import logging
+    try:
+        from firebase_admin import firestore as fb_firestore
+        _fs().collection("testimonials").document(str(t.id)).set({
+            "id": str(t.id),
+            "name": t.name,
+            "position": t.position or "",
+            "company": t.company or "",
+            "content": t.content or "",
+            "rating": t.rating or 5,
+            "is_active": bool(t.is_active),
+            "updated_at": fb_firestore.SERVER_TIMESTAMP,
+        }, merge=True)
+        logging.info(f"[Firestore] Synced testimonial {t.id}")
+    except Exception as e:
+        logging.error(f"[Firestore] Failed to sync testimonial {t.id}: {e}")
+
+
 @router.post("/projects/new")
 async def create_project(
     name: str = Form(...),
@@ -440,6 +484,8 @@ async def create_project(
     )
     db.add(project)
     db.commit()
+    db.refresh(project)
+    _sync_project_to_firestore(project)
     return RedirectResponse(url="/admin/projects", status_code=303)
 
 
@@ -496,6 +542,8 @@ async def update_project(
     project.videos = videos
     project.image = images[0] if images else ""
     db.commit()
+    db.refresh(project)
+    _sync_project_to_firestore(project)
     return RedirectResponse(url="/admin/projects", status_code=303)
 
 
@@ -509,8 +557,13 @@ async def delete_project(
         return RedirectResponse(url="/admin/login", status_code=303)
     project = db.query(ProjectShowcase).filter(ProjectShowcase.id == proj_id).first()
     if project:
+        proj_id_str = str(project.id)
         db.delete(project)
         db.commit()
+        try:
+            _fs().collection("projects").document(proj_id_str).delete()
+        except Exception:
+            pass
     return RedirectResponse(url="/admin/projects", status_code=303)
 
 
@@ -555,6 +608,8 @@ async def create_testimonial(
     )
     db.add(testimonial)
     db.commit()
+    db.refresh(testimonial)
+    _sync_testimonial_to_firestore(testimonial)
     return RedirectResponse(url="/admin/testimonials", status_code=303)
 
 
@@ -597,6 +652,8 @@ async def update_testimonial(
     testimonial.rating = rating
     testimonial.is_active = is_active == "on"
     db.commit()
+    db.refresh(testimonial)
+    _sync_testimonial_to_firestore(testimonial)
     return RedirectResponse(url="/admin/testimonials", status_code=303)
 
 
@@ -610,8 +667,13 @@ async def delete_testimonial(
         return RedirectResponse(url="/admin/login", status_code=303)
     testimonial = db.query(Testimonial).filter(Testimonial.id == test_id).first()
     if testimonial:
+        test_id_str = str(testimonial.id)
         db.delete(testimonial)
         db.commit()
+        try:
+            _fs().collection("testimonials").document(test_id_str).delete()
+        except Exception:
+            pass
     return RedirectResponse(url="/admin/testimonials", status_code=303)
 
 
@@ -620,6 +682,14 @@ async def delete_testimonial(
 def _fs():
     from firebase_admin import firestore as fb_firestore
     return fb_firestore.client()
+
+
+def _fmt_ts(ts) -> str:
+    if ts is None:
+        return ""
+    if hasattr(ts, "strftime"):
+        return ts.strftime("%b %d, %Y")
+    return str(ts)[:10]
 
 
 def _docs_to_list(collection_name: str, order_field: str = "created_at") -> list:
@@ -632,6 +702,7 @@ def _docs_to_list(collection_name: str, order_field: str = "created_at") -> list
         for doc in docs:
             data = doc.to_dict()
             data["id"] = doc.id
+            data["created_at"] = _fmt_ts(data.get("created_at"))
             result.append(data)
         return result
     except Exception:
