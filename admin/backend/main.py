@@ -77,6 +77,7 @@ app.add_middleware(AdminIPRestrictionMiddleware)
 
 # --- Admin static files ---
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+os.makedirs(static_dir, exist_ok=True)
 app.mount("/admin/static", StaticFiles(directory=static_dir), name="admin_static")
 
 # Mount the main website's assets for favicon/logo
