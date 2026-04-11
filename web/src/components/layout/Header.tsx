@@ -175,23 +175,6 @@ export function Header() {
                                             ))}
                                           </ul>
                                         )}
-                                        {col.subCategories && col.subCategories.map((sub) => (
-                                          <div key={sub.name} className="mb-4">
-                                            <p className="text-xs font-bold text-[#0099CC] uppercase tracking-wide mb-2">{sub.name}</p>
-                                            <ul className="space-y-2">
-                                              {sub.items.map((item) => (
-                                                <li key={item.path}>
-                                                  <Link
-                                                    href={item.path}
-                                                    className="text-sm text-gray-700 hover:text-[#0099CC] transition-colors"
-                                                  >
-                                                    {item.name}
-                                                  </Link>
-                                                </li>
-                                              ))}
-                                            </ul>
-                                          </div>
-                                        ))}
                                       </>
                                     )}
                                   </div>
