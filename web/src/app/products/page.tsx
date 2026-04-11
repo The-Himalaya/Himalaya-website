@@ -37,7 +37,7 @@ export default function ProductsOverview() {
   return (
     <div className="min-h-screen pt-20">
       {/* Hero Section */}
-      <section className="relative py-24" style={{ background: 'linear-gradient(135deg, #014871 0%, #D7EDE2 100%)' }}>
+      <section className="relative py-24" style={{ backgroundImage: 'linear-gradient(rgba(1,72,113,0.82), rgba(1,72,113,0.82)), url(/products.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
