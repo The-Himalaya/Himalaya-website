@@ -78,6 +78,7 @@ def _sync_product_to_firestore(prod: "Product") -> None:
 
 def slugify(text: str) -> str:
     text = text.lower().strip()
+    text = re.sub(r'[/\\]', '-', text)   # replace slashes with hyphens before stripping
     text = re.sub(r'[^\w\s-]', '', text)
     text = re.sub(r'[-\s]+', '-', text)
     return text
@@ -295,6 +296,28 @@ async def delete_category(
         except Exception as e:
             import logging
             logging.error(f"[Firestore] Failed to delete category {cat_id_str}: {e}")
+    return RedirectResponse(url="/admin/categories", status_code=303)
+
+
+# --- Firestore re-sync ---
+
+@router.post("/resync-firestore")
+async def resync_firestore(
+    db: Session = Depends(get_db),
+    admin=Depends(admin_required),
+):
+    """Push all categories and products from SQLite → Firestore with correct slugs."""
+    if not admin:
+        return RedirectResponse(url="/admin/login", status_code=303)
+
+    categories = db.query(Category).all()
+    for cat in categories:
+        _sync_category_to_firestore(cat)
+
+    products = db.query(Product).all()
+    for prod in products:
+        _sync_product_to_firestore(prod)
+
     return RedirectResponse(url="/admin/categories", status_code=303)
 
 
