@@ -27,32 +27,45 @@ def _fs():
     return fb_firestore.client()
 
 
+def _is_remote_url(url: str) -> bool:
+    """Return True only if the URL is a proper http(s) URL (Firebase Storage, CDN, etc.)."""
+    return isinstance(url, str) and url.startswith("http")
+
+
 def _sync_category_to_firestore(cat: "Category") -> None:
-    """Mirror a category to Firestore categories/{id}."""
+    """Mirror a category to Firestore categories/{id}.
+    Image is only written if it is a remote URL — local /admin/static/ paths and
+    empty values are skipped so existing Firebase Storage URLs are never overwritten.
+    """
     import logging
     try:
         from firebase_admin import firestore as fb_firestore
-        _fs().collection("categories").document(str(cat.id)).set({
+        data = {
             "id": str(cat.id),
             "name": cat.name,
             "slug": cat.slug,
             "description": cat.description or "",
-            "image": cat.image or "",
             "advantages": cat.advantages if isinstance(cat.advantages, list) else [],
             "product_count": cat.product_count or 0,
             "updated_at": fb_firestore.SERVER_TIMESTAMP,
-        }, merge=True)
+        }
+        if _is_remote_url(cat.image):
+            data["image"] = cat.image
+        _fs().collection("categories").document(str(cat.id)).set(data, merge=True)
         logging.info(f"[Firestore] Synced category {cat.id} to categories")
     except Exception as e:
         logging.error(f"[Firestore] Failed to sync category {cat.id}: {e}")
 
 
 def _sync_product_to_firestore(prod: "Product") -> None:
-    """Mirror a product to Firestore products/{id}."""
+    """Mirror a product to Firestore products/{id}.
+    image / images / datasheet are only written when they contain remote URLs so
+    existing Firebase Storage URLs are never overwritten by stale local paths.
+    """
     import logging
     try:
         from firebase_admin import firestore as fb_firestore
-        _fs().collection("products").document(str(prod.id)).set({
+        data = {
             "id": str(prod.id),
             "name": prod.name,
             "slug": prod.slug,
@@ -61,16 +74,21 @@ def _sync_product_to_firestore(prod: "Product") -> None:
             "category_slug": prod.category_slug or "",
             "load_class": prod.load_class or "",
             "standard": prod.standard or "",
-            "image": prod.image or "",
-            "images": prod.images if isinstance(prod.images, list) else [],
-            "datasheet": prod.datasheet or "",
             "description": prod.description or "",
             "specs": _parse_specs_str(prod.specs),
             "applications": prod.applications if isinstance(prod.applications, list) else [],
             "installation": prod.installation if isinstance(prod.installation, list) else [],
             "featured": bool(prod.featured),
             "updated_at": fb_firestore.SERVER_TIMESTAMP,
-        }, merge=True)
+        }
+        if _is_remote_url(prod.image):
+            data["image"] = prod.image
+        remote_images = [u for u in (prod.images or []) if _is_remote_url(u)]
+        if remote_images:
+            data["images"] = remote_images
+        if _is_remote_url(prod.datasheet):
+            data["datasheet"] = prod.datasheet
+        _fs().collection("products").document(str(prod.id)).set(data, merge=True)
         logging.info(f"[Firestore] Synced product {prod.id} to products")
     except Exception as e:
         logging.error(f"[Firestore] Failed to sync product {prod.id}: {e}")
