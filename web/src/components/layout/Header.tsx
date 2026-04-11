@@ -41,39 +41,34 @@ export function Header() {
       category: 'FRP / GRP PRODUCTS',
       path: '/products/frp-grp-products',
       items: [
-        { name: 'FRP Manhole Cover', path: '/products/frp-grp-products/frp-manhole-cover' },
-        { name: 'FRP Recess Manhole Cover', path: '/products/frp-grp-products/frp-recess-manhole-cover' },
-        { name: 'FRP Water Gully Cover', path: '/products/frp-grp-products/frp-water-gully-cover' },
-        { name: 'FRP Double Seal Manhole Cover', path: '/products/frp-grp-products/frp-double-seal-manhole-cover' },
-        { name: 'FRP Moulded Gratings', path: '/products/frp-grp-products/frp-moulded-gratings' },
-        { name: 'FRP Overhead Tank Cover', path: '/products/frp-grp-products/frp-overhead-tank-cover' },
+        { name: 'FRP Manhole Cover', path: '/product/frp-manhole-cover' },
+        { name: 'FRP Recess Manhole Cover', path: '/product/frp-recess-manhole-cover' },
+        { name: 'FRP Water Gully Cover', path: '/product/frp-water-gully-cover' },
+        { name: 'FRP Double Seal Manhole Cover', path: '/product/frp-double-seal-manhole-cover' },
+        { name: 'FRP Moulded Gratings', path: '/product/frp-moulded-gratings' },
+        { name: 'FRP Overhead Tank Cover', path: '/product/frp-overhead-tank-cover' },
       ],
     },
     {
       category: 'RCC MANHOLE COVER',
       path: '/products/rcc-covers',
       items: [
-        { name: 'Square Frame Round Cover', path: '/products/rcc-covers/square-frame-round-cover' },
-        { name: 'Rectangle Frame Rectangle Cover', path: '/products/rcc-covers/rectangle-frame-rectangle-cover' },
-        { name: 'Square Frame Square Cover', path: '/products/rcc-covers/square-frame-square-cover' },
-        { name: 'Catchpit / Perforated Manhole Cover', path: '/products/rcc-covers/catchpit-perforated-manhole-cover' },
-        { name: 'Round Frame Round Cover', path: '/products/rcc-covers/round-frame-round-cover' },
-        { name: 'Trench Cover', path: '/products/rcc-covers/trench-cover' },
+        { name: 'Square Frame Round Cover', path: '/product/square-frame-round-cover' },
+        { name: 'Rectangle Frame Rectangle Cover', path: '/product/rectangle-frame-rectangle-cover' },
+        { name: 'Square Frame Square Cover', path: '/product/square-frame-square-cover' },
+        { name: 'Catchpit / Perforated Manhole Cover', path: '/product/catchpit-preforated-manhole-cover' },
+        { name: 'Round Frame Round Cover', path: '/product/round-frame-round-cover' },
+        { name: 'Trench Cover', path: '/product/trench-cover' },
       ],
     },
     {
-      category: 'CONCRETE / PVC COVER BLOCKS',
+      category: 'CONCRETE COVER BLOCKS',
       path: '/products/cover-blocks',
-      subCategories: [
-        {
-          name: 'CONCRETE COVER BLOCKS',
-          items: [
-            { name: 'Multiple Type Cover Blocks', path: '/products/cover-blocks/multiple-type-cover-blocks' },
-            { name: 'Concrete Cover Blocks With Wire', path: '/products/cover-blocks/concrete-cover-blocks-with-wire' },
-            { name: 'Tower Type Spacer', path: '/products/cover-blocks/tower-type-spacer' },
-            { name: 'Concrete Pile Cover', path: '/products/cover-blocks/concrete-pile-cover' },
-          ],
-        },
+      items: [
+        { name: 'Multiple Type Cover Blocks', path: '/product/multiple-type-cover-blocks' },
+        { name: 'Concrete Cover Blocks With Wire', path: '/product/concrete-cover-blocks-with-wire' },
+        { name: 'Tower Type Spacer', path: '/product/tower-type-spacer' },
+        { name: 'Concrete Pile Cover', path: '/product/concrete-pile-cover' },
       ],
     },
     {
@@ -90,9 +85,13 @@ export function Header() {
 
   const productCategories = [
     { name: 'FRP/GRP Products', path: '/products/frp-grp-products' },
-    { name: 'RCC Covers', path: '/products/rcc-covers' },
-    { name: 'Cover Blocks', path: '/products/cover-blocks' },
-    { name: 'Hume Pipes', path: '/products/hume-pipes' },
+    { name: 'RCC Manhole Covers', path: '/products/rcc-covers' },
+    { name: 'Concrete Cover Blocks', path: '/products/cover-blocks' },
+    { name: 'PVC Cover Blocks', path: '/products/pvc-cover-blocks' },
+    { name: 'RCC Hume Pipes', path: '/products/rcc-hume-pipes' },
+    { name: 'RCC Electric Chambers', path: '/products/rcc-electric-chambers' },
+    { name: 'Diamond Dowels', path: '/products/diamond-dowels' },
+    { name: 'PVC Footsteps', path: '/products/pvc-footsteps' },
   ];
 
   return (
