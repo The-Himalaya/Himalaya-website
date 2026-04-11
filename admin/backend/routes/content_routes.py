@@ -139,9 +139,10 @@ async def create_blog(
 ):
     if not admin:
         return RedirectResponse(url="/admin/login", status_code=303)
-    images = await _save_files(new_images, "blog/images")
+    post_slug = slugify(title)
+    images = await _save_files(new_images, f"blog/{post_slug}")
     post = BlogPost(
-        title=title, slug=slugify(title), excerpt=excerpt, content=content,
+        title=title, slug=post_slug, excerpt=excerpt, content=content,
         category=category, author=author,
         image=images[0] if images else "",
         images=images, videos=[],
@@ -189,10 +190,11 @@ async def update_blog(
     post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
     if not post:
         return RedirectResponse(url="/admin/blog", status_code=303)
-    saved_images = await _save_files(new_images, "blog/images")
+    new_slug = slugify(title)
+    saved_images = await _save_files(new_images, f"blog/{new_slug}")
     images = (keep_images or []) + saved_images
     post.title = title
-    post.slug = slugify(title)
+    post.slug = new_slug
     post.excerpt = excerpt
     post.content = content
     post.category = category
@@ -474,8 +476,9 @@ async def create_project(
     if not admin:
         return RedirectResponse(url="/admin/login", status_code=303)
     prod_list = [p.strip() for p in products_used.split(",") if p.strip()]
-    images = await _save_files(new_images, "projects/images")
-    videos = await _save_files(new_videos, "projects/videos")
+    proj_slug = slugify(name)
+    images = await _save_files(new_images, f"projects/{proj_slug}/images")
+    videos = await _save_files(new_videos, f"projects/{proj_slug}/videos")
     project = ProjectShowcase(
         name=name, client=client, location=location, year=year,
         products_used=prod_list, quantity=quantity, description=description,
@@ -527,8 +530,9 @@ async def update_project(
     if not project:
         return RedirectResponse(url="/admin/projects", status_code=303)
     prod_list = [p.strip() for p in products_used.split(",") if p.strip()]
-    saved_images = await _save_files(new_images, "projects/images")
-    saved_videos = await _save_files(new_videos, "projects/videos")
+    proj_slug = slugify(name)
+    saved_images = await _save_files(new_images, f"projects/{proj_slug}/images")
+    saved_videos = await _save_files(new_videos, f"projects/{proj_slug}/videos")
     images = (keep_images or []) + saved_images
     videos = (keep_videos or []) + saved_videos
     project.name = name

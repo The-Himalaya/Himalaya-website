@@ -123,8 +123,12 @@ def _upload_to_firebase(content: bytes, path: str, ext: str) -> str | None:
         return None
 
 
-async def save_upload(file: UploadFile, subfolder: str, allowed_exts: set) -> str | None:
-    """Upload a file to Firebase Storage and return its public URL, or None if invalid."""
+async def save_upload(file: UploadFile, storage_folder: str, allowed_exts: set) -> str | None:
+    """Upload a file to Firebase Storage and return its public URL, or None if invalid.
+
+    storage_folder: full folder path inside bucket, e.g. 'categories/frp-grp-products'
+                    or 'products/frp-manhole-cover/images'
+    """
     if not file or not file.filename:
         return None
 
@@ -133,7 +137,7 @@ async def save_upload(file: UploadFile, subfolder: str, allowed_exts: set) -> st
         return None
 
     unique_name = f"{uuid.uuid4().hex[:12]}{ext}"
-    storage_path = f"uploads/{subfolder}/{unique_name}"
+    storage_path = f"{storage_folder}/{unique_name}"
     content = await file.read()
 
     url = _upload_to_firebase(content, storage_path, ext)
@@ -141,11 +145,12 @@ async def save_upload(file: UploadFile, subfolder: str, allowed_exts: set) -> st
         return url
 
     # Fallback: save locally if Firebase Storage is not configured
-    os.makedirs(os.path.join(UPLOAD_DIR, subfolder), exist_ok=True)
-    dest = os.path.join(UPLOAD_DIR, subfolder, unique_name)
+    local_dir = os.path.join(UPLOAD_DIR, storage_folder)
+    os.makedirs(local_dir, exist_ok=True)
+    dest = os.path.join(local_dir, unique_name)
     with open(dest, "wb") as f:
         f.write(content)
-    return f"/admin/static/uploads/{subfolder}/{unique_name}"
+    return f"/admin/static/uploads/{storage_folder}/{unique_name}"
 
 
 # --- Categories ---
@@ -197,10 +202,11 @@ async def create_category(
         return RedirectResponse(url="/admin/login", status_code=303)
 
     adv_list = [a.strip() for a in advantages.split("\n") if a.strip()]
-    image_url = await save_upload(image_file, "categories", ALLOWED_IMAGE_EXTS) or ""
+    cat_slug = slugify(name)
+    image_url = await save_upload(image_file, f"categories/{cat_slug}", ALLOWED_IMAGE_EXTS) or ""
     category = Category(
         name=name,
-        slug=slugify(name),
+        slug=cat_slug,
         description=description,
         image=image_url,
         advantages=adv_list,
@@ -253,14 +259,15 @@ async def update_category(
         return RedirectResponse(url="/admin/categories", status_code=303)
 
     adv_list = [a.strip() for a in advantages.split("\n") if a.strip()]
-    new_image = await save_upload(image_file, "categories", ALLOWED_IMAGE_EXTS)
+    new_slug = slugify(name)
+    new_image = await save_upload(image_file, f"categories/{new_slug}", ALLOWED_IMAGE_EXTS)
     if new_image:
         category.image = new_image
     elif not keep_image:
         category.image = ""
 
     category.name = name
-    category.slug = slugify(name)
+    category.slug = new_slug
     category.description = description
     category.advantages = adv_list
     db.commit()
@@ -372,17 +379,18 @@ async def create_product(
     inst_list = [i.strip() for i in installation.split("\n") if i.strip()]
 
     # Handle multiple image uploads
+    prod_slug = slugify(name)
     image_urls = []
     for f in image_files:
-        url = await save_upload(f, "images", ALLOWED_IMAGE_EXTS)
+        url = await save_upload(f, f"products/{prod_slug}/images", ALLOWED_IMAGE_EXTS)
         if url:
             image_urls.append(url)
     primary_image = image_urls[0] if image_urls else ""
-    datasheet_url = await save_upload(datasheet_file, "datasheets", ALLOWED_DOC_EXTS) or ""
+    datasheet_url = await save_upload(datasheet_file, f"products/{prod_slug}/datasheets", ALLOWED_DOC_EXTS) or ""
 
     product = Product(
         name=name,
-        slug=slugify(name),
+        slug=prod_slug,
         category_id=category_id,
         category_name=cat.name if cat else "",
         category_slug=cat.slug if cat else "",
@@ -423,6 +431,13 @@ async def edit_product_form(
     product = db.query(Product).filter(Product.id == prod_id).first()
     if not product:
         return RedirectResponse(url="/admin/products", status_code=303)
+
+    # Normalize: if images list is missing/empty but primary image exists, populate it
+    imgs = product.images if isinstance(product.images, list) else []
+    if not imgs and product.image:
+        product.images = [product.image]
+        db.commit()
+        db.refresh(product)
 
     categories = db.query(Category).order_by(Category.name).all()
     return templates.TemplateResponse("products/form.html", {
@@ -468,13 +483,13 @@ async def update_product(
     # mutations of the same JSON list instance, so we must reassign a new list.
     existing_images = list(product.images) if isinstance(product.images, list) else []
     for f in image_files:
-        url = await save_upload(f, "images", ALLOWED_IMAGE_EXTS)
+        url = await save_upload(f, f"products/{product.slug}/images", ALLOWED_IMAGE_EXTS)
         if url:
             existing_images.append(url)
     product.images = existing_images  # always reassign (even if unchanged)
     product.image = existing_images[0] if existing_images else ""
 
-    new_datasheet = await save_upload(datasheet_file, "datasheets", ALLOWED_DOC_EXTS)
+    new_datasheet = await save_upload(datasheet_file, f"products/{product.slug}/datasheets", ALLOWED_DOC_EXTS)
     if new_datasheet:
         product.datasheet = new_datasheet
 
@@ -542,6 +557,24 @@ async def remove_product_image(
             imgs.pop(index)
         product.images = imgs  # new list object → SQLAlchemy detects change
         product.image = imgs[0] if imgs else ""
+        db.commit()
+        db.refresh(product)
+        _sync_product_to_firestore(product)
+    return RedirectResponse(url=f"/admin/products/{prod_id}/edit", status_code=303)
+
+
+@router.post("/products/{prod_id}/clear-images")
+async def clear_product_images(
+    prod_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(admin_required),
+):
+    if not admin:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    product = db.query(Product).filter(Product.id == prod_id).first()
+    if product:
+        product.images = []
+        product.image = ""
         db.commit()
         db.refresh(product)
         _sync_product_to_firestore(product)
