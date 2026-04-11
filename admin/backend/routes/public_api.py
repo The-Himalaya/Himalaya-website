@@ -24,14 +24,35 @@ def _format_date(val) -> str:
     return str(val)[:10]
 
 
+# ── Field transformers ──────────────────────────────────
+
+def _clean_category(d: dict) -> dict:
+    """Strip timestamps and map snake_case → camelCase for frontend Category type."""
+    d.pop("updated_at", None)
+    d.pop("created_at", None)
+    d["productCount"] = d.pop("product_count", 0)
+    return d
+
+
+def _clean_product(d: dict) -> dict:
+    """Strip timestamps and map snake_case → camelCase for frontend Product type."""
+    d.pop("updated_at", None)
+    d.pop("created_at", None)
+    d.pop("category_id", None)
+    d["category"] = d.pop("category_name", "")
+    d["categorySlug"] = d.pop("category_slug", "")
+    d["loadClass"] = d.pop("load_class", "")
+    return d
+
+
 # ── Categories ──────────────────────────────────────────
 
 @router.get("/categories")
 def api_categories():
     try:
         docs = _fs().collection("categories").get()
-        result = [doc.to_dict() for doc in docs]
-        return sorted(result, key=lambda x: x.get("id", ""))
+        result = [_clean_category(doc.to_dict()) for doc in docs]
+        return sorted(result, key=lambda x: x.get("name", ""))
     except Exception as e:
         logging.warning(f"[api] /categories failed: {e}")
         return []
@@ -41,7 +62,9 @@ def api_categories():
 def api_category_by_slug(slug: str):
     try:
         docs = _fs().collection("categories").where("slug", "==", slug).limit(1).get()
-        return docs[0].to_dict() if docs else None
+        if not docs:
+            return None
+        return _clean_category(docs[0].to_dict())
     except Exception as e:
         logging.warning(f"[api] /categories/{slug} failed: {e}")
         return None
@@ -51,7 +74,7 @@ def api_category_by_slug(slug: str):
 def api_category_products(slug: str):
     try:
         docs = _fs().collection("products").where("category_slug", "==", slug).get()
-        result = [doc.to_dict() for doc in docs]
+        result = [_clean_product(doc.to_dict()) for doc in docs]
         return sorted(result, key=lambda x: x.get("name", ""))
     except Exception as e:
         logging.warning(f"[api] /categories/{slug}/products failed: {e}")
@@ -65,7 +88,7 @@ def api_category_products(slug: str):
 def api_products():
     try:
         docs = _fs().collection("products").get()
-        result = [doc.to_dict() for doc in docs]
+        result = [_clean_product(doc.to_dict()) for doc in docs]
         return sorted(result, key=lambda x: x.get("name", ""))
     except Exception as e:
         logging.warning(f"[api] /products failed: {e}")
@@ -76,7 +99,7 @@ def api_products():
 def api_featured_products():
     try:
         docs = _fs().collection("products").where("featured", "==", True).get()
-        result = [doc.to_dict() for doc in docs]
+        result = [_clean_product(doc.to_dict()) for doc in docs]
         return sorted(result, key=lambda x: x.get("name", ""))
     except Exception as e:
         logging.warning(f"[api] /products/featured failed: {e}")
@@ -87,7 +110,9 @@ def api_featured_products():
 def api_product_by_slug(slug: str):
     try:
         docs = _fs().collection("products").where("slug", "==", slug).limit(1).get()
-        return docs[0].to_dict() if docs else None
+        if not docs:
+            return None
+        return _clean_product(docs[0].to_dict())
     except Exception as e:
         logging.warning(f"[api] /products/{slug} failed: {e}")
         return None
